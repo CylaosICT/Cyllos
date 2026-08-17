@@ -1,0 +1,17 @@
+{#
+    Cylaos company logo (blue rounded square, "cylaos" wordmark), as scalable
+    inline SVG so it stays crisp at any size (sidebar brand mark, login mark,
+    favicon, avatars...).
+
+    Usage: {% include 'components/_cylaos_logo.html.twig' %}
+#}
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cylaos">
+    <defs>
+        <linearGradient id="cylaosBg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2a8bd1"/>
+            <stop offset="100%" stop-color="#125e93"/>
+        </linearGradient>
+    </defs>
+    <rect width="100" height="100" rx="22" fill="url(#cylaosBg)"/>
+    <text x="50" y="61" text-anchor="middle" font-family="'Inter', -apple-system, 'Segoe UI', sans-serif" font-size="22" font-weight="700" letter-spacing="-0.5" fill="#ffffff">cylaos</text>
+</svg>

@@ -1,0 +1,70 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Paiements - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block breadcrumb %}{% if selectedClient %}<div class="topbar__crumb"><a href="{{ path('admin_client_show', {id: selectedClient.id}) }}">{{ selectedClient.name }}</a> / Paiements</div>{% endif %}{% endblock %}
+{% block page_title %}Paiements{% endblock %}
+{% block page_actions %}
+    {% include 'components/_client_filter_dropdown.html.twig' with {clients: clients, selectedClient: selectedClient} only %}
+{% endblock %}
+
+{% block body %}
+    {% if payments is empty %}
+        <div class="table-wrapper">
+            <div class="empty-state">
+                <div class="empty-state__icon">{{ icons.render('inbox') }}</div>
+                <h3>Aucun paiement</h3>
+                <p>Les paiements HelloAsso apparaîtront ici automatiquement.</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>Id</th>
+                        <th>Date</th>
+                        <th>Montant</th>
+                        <th>Payeur</th>
+                        <th>Statut</th>
+                        <th>Erreur</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                        <tr>
+                            <td><a href="{{ path('admin_client_show', {id: payment.client.id}) }}">{{ payment.client.name }}</a></td>
+                            <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
+                            <td>{{ payment.paymentDate|date('d/m/Y H:i') }}</td>
+                            <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €</td>
+                            <td>{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
+                            <td><span class="badge {{ payment.status.badgeClass }}">{{ payment.status.label }}</span></td>
+                            <td class="cell-muted">{{ payment.error }}</td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    {% if payment.status.successful %}
+                                        <span class="icon-btn" title="Déjà crédité" style="color:var(--color-success);">{{ icons.render('check') }}</span>
+                                    {% else %}
+                                        <form method="post" action="{{ path('admin_payment_credit', {id: payment.id}) }}">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('payment_action_' ~ payment.id) }}">
+                                            <button class="btn btn--secondary btn--icon" type="submit" title="Créditer">{{ icons.render('send') }}</button>
+                                        </form>
+                                    {% endif %}
+                                    <form method="post" action="{{ path('admin_payment_delete', {id: payment.id}) }}" data-confirm-title="Supprimer le paiement" data-confirm-message="Supprimer ce paiement dans Cyllos (sans effet sur HelloAsso ni Cyclos) ?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('payment_action_' ~ payment.id) }}">
+                                        <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include 'components/_pagination.html.twig' with {pagination: pagination, route: 'admin_payment_list', params: {client: selectedClient ? selectedClient.id : null}} only %}
+    {% endif %}
+{% endblock %}

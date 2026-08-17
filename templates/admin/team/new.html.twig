@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau compte admin - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_team_list') }}">Équipe</a> / Nouveau</div>{% endblock %}
+{% block page_title %}Nouveau compte admin{% endblock %}
+
+{% block body %}
+    <div class="card">
+        {{ form_start(form) }}
+            <div class="field-group">
+                <p class="text-sm text-muted">Ce compte aura accès à l'ensemble des clients Cyllos.</p>
+                {{ form_widget(form) }}
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_team_list') }}">Annuler</a>
+                <button class="btn" type="submit">Créer le compte</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

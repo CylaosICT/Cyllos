@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Journal d'activité - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block page_title %}Journal d'activité{% endblock %}
+{% block page_actions %}
+    {% if page > 1 %}<a class="btn btn--secondary btn--sm" href="{{ path('dev_log_list', {page: page - 1}) }}">← Plus récent</a>{% endif %}
+    <a class="btn btn--secondary btn--sm" href="{{ path('dev_log_list', {page: page + 1}) }}">Plus ancien →</a>
+{% endblock %}
+
+{% block body %}
+    {% if logs is empty %}
+        <div class="empty-state">
+            <div class="empty-state__icon">{{ icons.render('inbox') }}</div>
+            <h3>Rien à afficher</h3>
+            <p>Aucune activité enregistrée pour cette page.</p>
+        </div>
+    {% else %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Acteur</th>
+                        <th>Action</th>
+                        <th>Détail</th>
+                        <th>Contexte</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                        <tr>
+                            <td class="cell-muted">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
+                            <td>{{ log.actorEmail ?: 'Système' }}</td>
+                            <td><code>{{ log.action }}</code></td>
+                            <td>{{ log.summary }}</td>
+                            <td class="cell-muted">{{ log.context }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}{{ client.name }} - Cyllos{% endblock %}
+{% block content_width %}content--full{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / {{ client.name }}</div>{% endblock %}
+{% block page_title %}
+    <span class="topbar__title--with-avatar">
+        {% include 'components/_client_avatar.html.twig' with {client: client, size: 'md'} only %}
+        {{ client.name }}
+    </span>
+{% endblock %}
+{% block page_actions %}
+    <a class="btn btn--secondary" href="{{ path('admin_payment_list', {client: client.id}) }}">{{ icons.render('payments') }} Paiements</a>
+    <form method="post" action="{{ path('admin_client_fetch', {id: client.id}) }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('client_fetch_' ~ client.id) }}">
+        <button class="btn" type="submit">{{ icons.render('sync') }} Synchro HelloAsso</button>
+    </form>
+{% endblock %}
+
+{% block body %}
+    <div class="client-header-meta">
+        <span class="dot {{ client.active ? 'dot--active' : 'dot--inactive' }}"></span>
+        {{ client.active ? 'Client actif' : 'Client inactif' }}
+        <span class="text-muted">·</span>
+        <span class="text-muted">Webhook :</span> <code>{{ absolute_url(path('webhook_helloasso', {clientSlug: client.slug})) }}</code>
+    </div>
+
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-card__header">
+                <div class="summary-card__title">
+                    <span class="summary-card__icon">{{ icons.render('building') }}</span>
+                    Informations
+                </div>
+                <a class="btn btn--ghost btn--sm" href="{{ path('admin_client_edit_info', {id: client.id}) }}">Modifier</a>
+            </div>
+            <div class="summary-card__body">
+                <dl class="kv-list">
+                    <div class="kv-row"><dt>Nom</dt><dd>{{ client.name }}</dd></div>
+                    <div class="kv-row"><dt>Slug</dt><dd><code>{{ client.slug }}</code></dd></div>
+                    <div class="kv-row"><dt>Statut</dt><dd>{{ client.active ? 'Actif' : 'Inactif' }}</dd></div>
+                    <div class="kv-row"><dt>Créé le</dt><dd>{{ client.createdAt|date('d/m/Y') }}</dd></div>
+                </dl>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card__header">
+                <div class="summary-card__title">
+                    <span class="summary-card__icon">{{ icons.render('inbox') }}</span>
+                    HelloAsso
+                </div>
+                <a class="btn btn--ghost btn--sm" href="{{ path('admin_client_edit_helloasso', {id: client.id}) }}">Modifier</a>
+            </div>
+            <div class="summary-card__body">
+                <dl class="kv-list">
+                    <div class="kv-row"><dt>Organisation</dt><dd>{{ client.helloAssoConfig.organizationSlug }}</dd></div>
+                    <div class="kv-row"><dt>Type de formulaire</dt><dd>{{ client.helloAssoConfig.formType }}</dd></div>
+                    <div class="kv-row"><dt>Formulaire</dt><dd>{{ client.helloAssoConfig.formSlug }}</dd></div>
+                    <div class="kv-row"><dt>Client ID</dt><dd><code>{{ client.helloAssoConfig.helloAssoClientId }}</code></dd></div>
+                    <div class="kv-row"><dt>Montant max</dt><dd>{{ client.helloAssoConfig.maxAmount }} €</dd></div>
+                </dl>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card__header">
+                <div class="summary-card__title">
+                    <span class="summary-card__icon">{{ icons.render('cyclos') }}</span>
+                    Cyclos
+                </div>
+                <a class="btn btn--ghost btn--sm" href="{{ path('admin_client_edit_cyclos', {id: client.id}) }}">Modifier</a>
+            </div>
+            <div class="summary-card__body">
+                <dl class="kv-list">
+                    <div class="kv-row"><dt>URL</dt><dd>{{ client.cyclosConfig.baseUrl }}</dd></div>
+                    <div class="kv-row"><dt>Utilisateur technique</dt><dd><code>{{ client.cyclosConfig.technicalUserId }}</code></dd></div>
+                    <div class="kv-row"><dt>Groupe pro</dt><dd>{{ client.cyclosConfig.groupProInternal }}</dd></div>
+                    <div class="kv-row"><dt>Groupe(s) particulier</dt><dd>{{ client.cyclosConfig.groupsPartInternal }}</dd></div>
+                </dl>
+            </div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-card__header">
+                <div class="summary-card__title">
+                    <span class="summary-card__icon">{{ icons.render('settings') }}</span>
+                    Réglages
+                </div>
+                <a class="btn btn--ghost btn--sm" href="{{ path('admin_client_edit_settings', {id: client.id}) }}">Modifier</a>
+            </div>
+            <div class="summary-card__body">
+                <dl class="kv-list">
+                    <div class="kv-row"><dt>Paiements Cyclos</dt><dd>{{ client.setting.paymentCyclosEnabled ? 'Activés' : 'Désactivés (aperçu)' }}</dd></div>
+                    <div class="kv-row"><dt>Mode automatique</dt><dd>{{ client.setting.paymentAutomaticEnabled ? 'Activé' : 'Désactivé' }}</dd></div>
+                    <div class="kv-row"><dt>Mail principal</dt><dd>{{ client.setting.mailRecipient }}</dd></div>
+                    <div class="kv-row"><dt>Notifier l'association</dt><dd>{{ client.setting.notifyAssociationOnPayment ? 'Activé' : 'Désactivé' }}</dd></div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card--section">
+        <div class="card__header">
+            <div>
+                <h2>Comptes utilisateurs</h2>
+                <p>Accès à l'espace client de {{ client.name }}.</p>
+            </div>
+            <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_new_user', {id: client.id}) }}">{{ icons.render('plus') }} Nouveau compte</a>
+        </div>
+        {% if usersPagination.items is empty %}
+            <div class="empty-state">
+                <div class="empty-state__icon">{{ icons.render('mail') }}</div>
+                <h3>Aucun compte pour ce client</h3>
+                <p>Créez un accès pour que {{ client.name }} puisse consulter ses paiements.</p>
+            </div>
+        {% else %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>E-mail</th>
+                        <th>Statut</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in usersPagination.items %}
+                        <tr>
+                            <td class="cell-primary">{{ user.email }}</td>
+                            <td>
+                                <span class="status-pill">
+                                    <span class="dot {{ user.active ? 'dot--active' : 'dot--inactive' }}"></span>
+                                    {{ user.active ? 'Actif' : 'Inactif' }}
+                                </span>
+                            </td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_reset_user_password', {id: client.id, userId: user.id}) }}">{{ icons.render('key') }} Mot de passe</a>
+                                    <form method="post" action="{{ path('admin_client_delete_user', {id: client.id, userId: user.id}) }}" data-confirm-title="Supprimer le compte" data-confirm-message="Supprimer le compte {{ user.email }} ?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_user_' ~ user.id) }}">
+                                        <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% include 'components/_pagination.html.twig' with {pagination: usersPagination, route: 'admin_client_show', params: {id: client.id}} only %}
+        {% endif %}
+    </div>
+
+    <div class="card card--section card--danger">
+        <div class="card__header">
+            <div>
+                <h2>Zone de danger</h2>
+                <p>{{ client.active ? 'Désactivez le client (dans "Informations") avant de pouvoir le supprimer.' : 'Cette action est définitive et supprime aussi ses paiements et comptes utilisateurs.' }}</p>
+            </div>
+            <form method="post" action="{{ path('admin_client_delete', {id: client.id}) }}" data-confirm-title="Supprimer le client" data-confirm-message="Supprimer définitivement {{ client.name }} et toutes ses données ?">
+                <input type="hidden" name="_token" value="{{ csrf_token('delete_client_' ~ client.id) }}">
+                <button class="btn btn--danger" type="submit" {{ client.active ? 'disabled' : '' }}>{{ icons.render('trash') }} Supprimer le client</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

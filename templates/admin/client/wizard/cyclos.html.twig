@@ -1,0 +1,32 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau client — Cyclos - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / Nouveau</div>{% endblock %}
+{% block page_title %}Configuration Cyclos{% endblock %}
+
+{% block body %}
+    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 3} %}
+
+    <div class="card">
+        {{ form_start(form) }}
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:1.1rem;">Connexion à l'instance Cyclos</h2>
+                <div class="form-grid">
+                    {{ form_row(form.baseUrl) }}
+                    {{ form_row(form.technicalUserId) }}
+                    {{ form_row(form.password) }}
+                    {{ form_row(form.groupProInternal) }}
+                    {{ form_row(form.groupsPartInternal) }}
+                    {{ form_row(form.emissionProInternal) }}
+                    {{ form_row(form.emissionPartInternal) }}
+                </div>
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_new_helloasso') }}">← Retour</a>
+                <button class="btn" type="submit">Continuer</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

@@ -1,0 +1,62 @@
+# LICENCE PROPRIÉTAIRE — CYLLOS
+
+**Copyright © 2026 Cylaos ICT. Tous droits réservés.**
+
+Cyllos est un logiciel propriétaire développé et maintenu par **Cylaos ICT**.
+
+Le code source de ce logiciel est mis à disposition à des fins de consultation, de développement, de test, d'audit et de contribution, sous réserve du respect des conditions définies dans la présente licence.
+
+## 1. Propriété
+
+L'ensemble du logiciel, de son code source, de son architecture, de ses composants, de sa documentation et de ses éléments associés demeure la propriété exclusive de **Cylaos ICT**, sauf mention contraire concernant des composants tiers.
+
+La mise à disposition du code source ne constitue en aucun cas une cession de propriété intellectuelle.
+
+## 2. Utilisations autorisées
+
+Sauf accord contraire écrit de Cylaos ICT, le logiciel peut être :
+
+* consulté à des fins d'étude ou d'audit ;
+* utilisé dans un environnement de développement ou de test ;
+* modifié à des fins de développement ou de test ;
+* utilisé pour contribuer à l'amélioration du projet.
+
+## 3. Utilisation en production
+
+**L'utilisation de Cyllos dans un environnement de production est strictement interdite sans l'autorisation écrite préalable de Cylaos ICT.**
+
+Est notamment considérée comme une utilisation en production toute utilisation du logiciel visant à fournir un service réel, traiter des données réelles, gérer des transactions réelles ou être exploité dans le cadre d'une activité commerciale, associative, professionnelle ou institutionnelle.
+
+Toute autorisation d'utilisation en production peut être soumise à des conditions particulières définies par Cylaos ICT.
+
+## 4. Redistribution
+
+La redistribution du logiciel, de copies du code source ou de versions modifiées à des tiers est interdite sans l'autorisation écrite préalable de Cylaos ICT.
+
+La publication d'une version modifiée ou dérivée sur un dépôt public ou privé accessible à des tiers nécessite également l'autorisation préalable de Cylaos ICT.
+
+## 5. Composants tiers
+
+Cette licence ne s'applique pas aux bibliothèques, frameworks, dépendances ou autres composants tiers intégrés au logiciel et distribués sous leurs propres licences.
+
+Les licences applicables à ces composants doivent être respectées indépendamment de la présente licence.
+
+## 6. Absence de garantie
+
+Le logiciel est fourni « en l'état », sans garantie expresse ou implicite de quelque nature que ce soit, dans les limites permises par la législation applicable.
+
+Cylaos ICT ne pourra être tenue responsable des dommages résultant de l'utilisation, de la modification ou du déploiement non autorisé du logiciel.
+
+## 7. Autorisation spécifique
+
+Toute demande d'autorisation d'utilisation en production, de redistribution ou d'exploitation commerciale doit être adressée à **Cylaos ICT**.
+
+L'autorisation doit être obtenue **par écrit avant toute utilisation concernée**.
+
+## 8. Réserve de droits
+
+Tous les droits qui ne sont pas expressément accordés par la présente licence sont réservés à Cylaos ICT.
+
+**Cylaos ICT — Tous droits réservés.**
+
+Copyright © 2026 Cylaos ICT.

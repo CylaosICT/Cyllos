@@ -1,0 +1,31 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ section_title }} — {{ client.name }} - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / <a href="{{ path('admin_client_show', {id: client.id}) }}">{{ client.name }}</a> / {{ section_title }}</div>{% endblock %}
+{% block page_title %}{{ section_title }}{% endblock %}
+
+{% block body %}
+    <div class="card">
+        {{ form_start(form) }}
+            {% if client.logoFilename %}
+                <div class="field-group field-group--row">
+                    {% include 'components/_client_avatar.html.twig' with {client: client, size: 'md'} only %}
+                    <span class="text-sm text-muted">Logo actuel</span>
+                </div>
+            {% endif %}
+            <div class="field-group">
+                {% if use_grid|default(false) %}
+                    <div class="form-grid">{{ form_widget(form) }}</div>
+                {% else %}
+                    {{ form_widget(form) }}
+                {% endif %}
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_show', {id: client.id}) }}">Annuler</a>
+                <button class="btn" type="submit">Enregistrer</button>
+            </div>
+        {{ form_end(form, {render_rest: false}) }}
+    </div>
+{% endblock %}

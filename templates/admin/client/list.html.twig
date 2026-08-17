@@ -1,0 +1,62 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Clients - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block page_title %}Clients{% endblock %}
+{% block page_actions %}
+    <a class="btn" href="{{ path('admin_client_new') }}">{{ icons.render('plus') }} Nouveau client</a>
+{% endblock %}
+
+{% block body %}
+    {% if clients is empty %}
+        <div class="table-wrapper">
+            <div class="empty-state">
+                <div class="empty-state__icon">{{ icons.render('building') }}</div>
+                <h3>Aucun client configuré</h3>
+                <p>Créez votre premier client pour connecter HelloAsso et Cyclos.</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Slug</th>
+                        <th>Statut</th>
+                        <th>Webhook HelloAsso</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for client in clients %}
+                        <tr>
+                            <td class="cell-primary">
+                                <a href="{{ path('admin_client_show', {id: client.id}) }}" class="name-with-avatar">
+                                    {% include 'components/_client_avatar.html.twig' with {client: client, size: 'sm'} only %}
+                                    {{ client.name }}
+                                </a>
+                            </td>
+                            <td><code>{{ client.slug }}</code></td>
+                            <td>
+                                <span class="status-pill">
+                                    <span class="dot {{ client.active ? 'dot--active' : 'dot--inactive' }}"></span>
+                                    {{ client.active ? 'Actif' : 'Inactif' }}
+                                </span>
+                            </td>
+                            <td class="cell-muted"><code>/webhook/helloasso/{{ client.slug }}</code></td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    <a class="btn btn--secondary btn--sm" href="{{ path('admin_payment_list', {client: client.id}) }}">Paiements</a>
+                                    <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_show', {id: client.id}) }}">Détails {{ icons.render('chevron-right') }}</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
