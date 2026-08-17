@@ -4,7 +4,7 @@
 
 Cyllos écoute les paiements HelloAsso de plusieurs clients (monnaies locales) et
 crédite automatiquement leur compte Cyclos correspondant. C'est une réécriture
-multi-tenant d'[Hellos](../Hellos_source/hellos-main), sous Symfony : une seule
+multi-tenant d'[Hellos](https://github.com/jymaire/hellos), sous Symfony : une seule
 application gère l'ensemble des clients, chacun avec ses propres identifiants
 HelloAsso et sa propre connexion Cyclos.
 
