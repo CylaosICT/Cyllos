@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr"{% if app.user %} data-theme="{{ app.user.theme }}"{% endif %}>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>{% block title %}Cyllos{% endblock %}</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23186293%22/><text x=%2250%22 y=%2261%22 text-anchor=%22middle%22 font-family=%22Arial%2C sans-serif%22 font-size=%2222%22 font-weight=%22700%22 fill=%22%23fff%22>cylaos</text></svg>">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+        {% block stylesheets %}
+        {% endblock %}
+
+        {% block javascripts %}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
+    </head>
+    <body>
+        {% if app.user %}
+            {% import 'components/icons.html.twig' as icons %}
+            <div class="modal-backdrop" data-controller="confirm" data-confirm-target="backdrop"
+                 data-action="submit@window->confirm#intercept keydown@window->confirm#closeOnEscape click->confirm#closeOnBackdrop">
+                <div class="modal" role="alertdialog" aria-modal="true">
+                    <h3 data-confirm-target="title">Confirmer la suppression</h3>
+                    <p data-confirm-target="message"></p>
+                    <div class="modal__actions">
+                        <button type="button" class="btn btn--secondary" data-action="confirm#cancel">Annuler</button>
+                        <button type="button" class="btn btn--danger" data-confirm-target="confirmBtn" data-action="confirm#proceed">Supprimer</button>
+                    </div>
+                </div>
+            </div>
+            <div class="shell" data-controller="sidebar">
+                <div class="sidebar-backdrop" data-sidebar-target="backdrop" data-action="click->sidebar#close"></div>
+                <aside class="sidebar" data-sidebar-target="sidebar">
+                    <a class="sidebar__brand" href="{{ path('app_home') }}">
+                        <span class="sidebar__brand-mark">{% include 'components/_cylaos_logo.html.twig' %}</span> Cyllos
+                    </a>
+                    <nav class="sidebar__nav">
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <div class="sidebar__section-label">Administration</div>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_client' ? 'is-active' : '' }}" href="{{ path('admin_client_list') }}">
+                                {{ icons.render('clients') }} Clients
+                            </a>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_payment' ? 'is-active' : '' }}" href="{{ path('admin_payment_list') }}">
+                                {{ icons.render('payments') }} Paiements
+                            </a>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_team' ? 'is-active' : '' }}" href="{{ path('admin_team_list') }}">
+                                {{ icons.render('key') }} Équipe
+                            </a>
+                        {% endif %}
+                        {% if is_granted('ROLE_CLIENT') %}
+                            <div class="sidebar__section-label">Espace client</div>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'app_payment' ? 'is-active' : '' }}" href="{{ path('app_payment_list') }}">
+                                {{ icons.render('payments') }} Mes paiements
+                            </a>
+                        {% endif %}
+                        {% if is_granted('ROLE_DEVELOPER') %}
+                            <div class="sidebar__section-label">Développeur</div>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_' ? 'is-active' : '' }}" href="{{ path('dev_log_list') }}">
+                                {{ icons.render('inbox') }} Journal d'activité
+                            </a>
+                        {% endif %}
+                        <div class="sidebar__section-label">Compte</div>
+                        <a class="nav-link {{ app.request.attributes.get('_route') starts with 'settings_' ? 'is-active' : '' }}" href="{{ path('settings_index') }}">
+                            {{ icons.render('settings') }} Réglages
+                        </a>
+                    </nav>
+                    <div class="sidebar__footer">
+                        <div class="user-card">
+                            {% if is_granted('ROLE_ADMIN') %}
+                                <span class="avatar user-card__avatar">{% include 'components/_cylaos_logo.html.twig' %}</span>
+                            {% elseif app.user.client %}
+                                {% include 'components/_client_avatar.html.twig' with {client: app.user.client} only %}
+                            {% else %}
+                                <span class="avatar user-card__avatar">{{ app.user.userIdentifier|slice(0, 1)|upper }}</span>
+                            {% endif %}
+                            <div class="user-card__info">
+                                <div class="user-card__email">{{ app.user.userIdentifier }}</div>
+                                <div class="user-card__role">
+                                    {{ is_granted('ROLE_CEO') ? 'CEO' : (is_granted('ROLE_DEVELOPER') ? 'Développeur' : (is_granted('ROLE_ADMIN') ? 'Administrateur' : 'Client')) }}
+                                </div>
+                            </div>
+                            <form method="post" action="{{ path('app_logout') }}">
+                                <button class="icon-btn" type="submit" title="Déconnexion">{{ icons.render('logout') }}</button>
+                            </form>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="main">
+                    <div class="topbar">
+                        <button class="icon-btn topbar__menu-btn" type="button" data-action="sidebar#toggle" aria-label="Menu">
+                            {{ icons.render('menu') }}
+                        </button>
+                        <div>
+                            {% block breadcrumb %}{% endblock %}
+                            <h1 class="topbar__title">{% block page_title %}{% endblock %}</h1>
+                        </div>
+                        <div class="topbar__actions">
+                            {% if is_granted('ROLE_ADMIN') %}
+                                <form class="topbar__search" method="get" action="{{ path('admin_search') }}">
+                                    {{ icons.render('search') }}
+                                    <input type="search" name="q" placeholder="Rechercher un client, un paiement…" value="{{ app.request.attributes.get('_route') == 'admin_search' ? app.request.query.get('q') : '' }}">
+                                </form>
+                            {% endif %}
+                            {% block page_actions %}{% endblock %}
+                        </div>
+                    </div>
+                    <div class="content {% block content_width %}{% endblock %}">
+                        {% for label, messages in app.flashes(['success', 'error']) %}
+                            {% for message in messages %}
+                                <div class="flash flash--{{ label }}" data-controller="flash">
+                                    {{ icons.render(label == 'success' ? 'check' : 'x') }} {{ message }}
+                                </div>
+                            {% endfor %}
+                        {% endfor %}
+
+                        {% block body %}{% endblock %}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            {% block guest_body %}{% endblock %}
+        {% endif %}
+    </body>
+</html>

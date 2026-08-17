@@ -1,0 +1,20 @@
+{% import 'components/icons.html.twig' as icons %}
+<div class="dropdown" data-controller="dropdown" data-action="click@window->dropdown#closeOnClickOutside keydown@window->dropdown#closeOnEscape">
+    <button type="button" class="dropdown__trigger" data-dropdown-target="trigger" data-action="dropdown#toggle" aria-haspopup="true" aria-expanded="false">
+        {% if selectedClient %}
+            {% include 'components/_client_avatar.html.twig' with {client: selectedClient, size: 'sm'} only %}
+        {% endif %}
+        <span>{{ selectedClient ? selectedClient.name : 'Tous les clients' }}</span>
+        {{ icons.render('chevron-right', 'style="transform:rotate(90deg)"') }}
+    </button>
+    <div class="dropdown__menu" data-dropdown-target="menu">
+        <a class="dropdown__item {{ selectedClient is null ? 'is-selected' : '' }}" href="{{ path('admin_payment_list') }}">Tous les clients</a>
+        <div class="dropdown__divider"></div>
+        {% for client in clients %}
+            <a class="dropdown__item {{ selectedClient and selectedClient.id == client.id ? 'is-selected' : '' }}" href="{{ path('admin_payment_list', {client: client.id}) }}">
+                {% include 'components/_client_avatar.html.twig' with {client: client, size: 'sm'} only %}
+                {{ client.name }}
+            </a>
+        {% endfor %}
+    </div>
+</div>

@@ -1,0 +1,26 @@
+{% import 'components/icons.html.twig' as icons %}
+{% set steps = [
+    {label: 'Informations', route: 'admin_client_new'},
+    {label: 'HelloAsso', route: 'admin_client_new_helloasso'},
+    {label: 'Cyclos', route: 'admin_client_new_cyclos'},
+    {label: 'Réglages', route: 'admin_client_new_settings'},
+] %}
+<div class="stepper">
+    {% for step in steps %}
+        {% set stepNumber = loop.index %}
+        {% set state = stepNumber < currentStep ? 'is-complete' : (stepNumber == currentStep ? 'is-current' : '') %}
+        <div class="stepper__step {{ state }}">
+            <div class="stepper__circle">
+                {% if stepNumber < currentStep %}
+                    {{ icons.render('check', 'style="width:13px;height:13px"') }}
+                {% else %}
+                    {{ stepNumber }}
+                {% endif %}
+            </div>
+            <div class="stepper__label">{{ step.label }}</div>
+        </div>
+        {% if not loop.last %}
+            <div class="stepper__connector"></div>
+        {% endif %}
+    {% endfor %}
+</div>

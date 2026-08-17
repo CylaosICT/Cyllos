@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau client — HelloAsso - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / Nouveau</div>{% endblock %}
+{% block page_title %}Configuration HelloAsso{% endblock %}
+
+{% block body %}
+    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 2} %}
+
+    <div class="card">
+        {{ form_start(form) }}
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:1.1rem;">Identifiants et paramètres HelloAsso</h2>
+                <div class="form-grid">
+                    {{ form_row(form.apiUrl) }}
+                    {{ form_row(form.helloAssoClientId) }}
+                    {{ form_row(form.clientSecret) }}
+                    {{ form_row(form.organizationSlug) }}
+                    {{ form_row(form.formType) }}
+                    {{ form_row(form.formSlug) }}
+                    {{ form_row(form.maxAmount) }}
+                    {{ form_row(form.fetchNbDays) }}
+                    {{ form_row(form.extraMailFieldName) }}
+                </div>
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_new') }}">← Retour</a>
+                <button class="btn" type="submit">Continuer</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Recherche — {{ query }} - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block page_title %}Résultats pour « {{ query }} »{% endblock %}
+
+{% block body %}
+    {% if query is empty %}
+        <div class="empty-state">
+            <div class="empty-state__icon">{{ icons.render('inbox') }}</div>
+            <h3>Tapez une recherche</h3>
+            <p>Client, paiement (nom, e-mail, id), ou compte utilisateur.</p>
+        </div>
+    {% elseif clients is empty and payments is empty and users is empty %}
+        <div class="empty-state">
+            <div class="empty-state__icon">{{ icons.render('inbox') }}</div>
+            <h3>Aucun résultat</h3>
+            <p>Rien ne correspond à « {{ query }} ».</p>
+        </div>
+    {% else %}
+        {% if clients is not empty %}
+            <div class="card card--section">
+                <div class="card__header"><h2>Clients</h2></div>
+                <table>
+                    <tbody>
+                        {% for client in clients %}
+                            <tr>
+                                <td class="cell-primary">
+                                    <a href="{{ path('admin_client_show', {id: client.id}) }}" class="name-with-avatar">
+                                        {% include 'components/_client_avatar.html.twig' with {client: client, size: 'sm'} only %}
+                                        {{ client.name }}
+                                    </a>
+                                </td>
+                                <td class="cell-muted"><code>{{ client.slug }}</code></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if payments is not empty %}
+            <div class="card card--section">
+                <div class="card__header"><h2>Paiements</h2></div>
+                <table>
+                    <tbody>
+                        {% for payment in payments %}
+                            <tr>
+                                <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
+                                <td class="cell-primary">{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
+                                <td>{{ payment.email }}</td>
+                                <td>{{ payment.amount|number_format(2, ',', ' ') }} €</td>
+                                <td><span class="badge {{ payment.status.badgeClass }}">{{ payment.status.label }}</span></td>
+                                <td><a href="{{ path('admin_payment_list', {client: payment.client.id}) }}">{{ payment.client.name }}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if users is not empty %}
+            <div class="card card--section">
+                <div class="card__header"><h2>Comptes utilisateurs</h2></div>
+                <table>
+                    <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td class="cell-primary">{{ user.email }}</td>
+                                <td class="cell-muted">{{ user.client ? user.client.name : 'Administrateur' }}</td>
+                                <td>
+                                    {% if user.client %}
+                                        <a href="{{ path('admin_client_show', {id: user.client.id}) }}">Voir le client</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}

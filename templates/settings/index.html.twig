@@ -1,0 +1,76 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Réglages - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block page_title %}Réglages{% endblock %}
+
+{% block body %}
+    <div class="settings-grid">
+        <div class="settings-grid__column">
+            <div class="card">
+                <div class="card__header">
+                    <div>
+                        <h2>Apparence</h2>
+                        <p>Choisissez votre thème, il sera mémorisé pour votre compte.</p>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <div class="theme-picker">
+                        <form method="post" action="{{ path('settings_theme') }}">
+                            <input type="hidden" name="theme" value="light">
+                            <button class="theme-option {{ app.user.theme == 'light' ? 'is-selected' : '' }}" type="submit">
+                                <span class="theme-option__swatch theme-option__swatch--light"></span>
+                                Clair
+                            </button>
+                        </form>
+                        <form method="post" action="{{ path('settings_theme') }}">
+                            <input type="hidden" name="theme" value="dark">
+                            <button class="theme-option {{ app.user.theme == 'dark' ? 'is-selected' : '' }}" type="submit">
+                                <span class="theme-option__swatch theme-option__swatch--dark"></span>
+                                Sombre
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card--section">
+                <div class="card__header">
+                    <div>
+                        <h2>Adresse e-mail</h2>
+                        <p>Utilisée pour vous connecter à Cyllos.</p>
+                    </div>
+                </div>
+                {{ form_start(emailForm, {action: path('settings_email')}) }}
+                    <div class="field-group">
+                        {{ form_widget(emailForm) }}
+                    </div>
+                    <div class="form-footer">
+                        <span></span>
+                        <button class="btn" type="submit">Mettre à jour</button>
+                    </div>
+                {{ form_end(emailForm) }}
+            </div>
+        </div>
+
+        <div class="card card--fill">
+            <div class="card__header">
+                <div>
+                    <h2>Mot de passe</h2>
+                    <p>Choisissez un mot de passe d'au moins 8 caractères.</p>
+                </div>
+            </div>
+            {{ form_start(passwordForm, {action: path('settings_password'), attr: {class: 'card--fill__form'}}) }}
+                <div class="field-group">
+                    {{ form_widget(passwordForm) }}
+                </div>
+                <div class="form-footer">
+                    <span></span>
+                    <button class="btn" type="submit">Mettre à jour</button>
+                </div>
+            {{ form_end(passwordForm) }}
+        </div>
+    </div>
+{% endblock %}

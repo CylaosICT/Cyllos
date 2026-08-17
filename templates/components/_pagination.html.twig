@@ -1,0 +1,10 @@
+{# Usage: {% include 'components/_pagination.html.twig' with {pagination: pagination, route: 'admin_payment_list', params: {client: selectedClient ? selectedClient.id : null}} only %} #}
+{% if pagination.pageCount > 1 %}
+    <div class="pagination">
+        <a class="btn btn--secondary btn--sm {{ pagination.page <= 1 ? 'is-disabled' : '' }}"
+           href="{{ path(route, params|merge({page: pagination.page - 1})) }}">← Précédent</a>
+        <span class="pagination__status">Page {{ pagination.page }} / {{ pagination.pageCount }} ({{ pagination.total }} au total)</span>
+        <a class="btn btn--secondary btn--sm {{ pagination.page >= pagination.pageCount ? 'is-disabled' : '' }}"
+           href="{{ path(route, params|merge({page: pagination.page + 1})) }}">Suivant →</a>
+    </div>
+{% endif %}

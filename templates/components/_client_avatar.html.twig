@@ -1,0 +1,9 @@
+{# Client avatar: shows the uploaded logo if any, otherwise the client's initial. #}
+{% set sizeClass = size is defined ? ('avatar--' ~ size) : '' %}
+<span class="avatar {{ sizeClass }}">
+    {% if client.logoFilename %}
+        <img src="{{ asset('uploads/client-logos/' ~ client.logoFilename) }}" alt="{{ client.name }}">
+    {% else %}
+        {{ client.name|slice(0, 1)|upper }}
+    {% endif %}
+</span>

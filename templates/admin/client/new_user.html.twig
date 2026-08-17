@@ -1,0 +1,22 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau compte — {{ client.name }} - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / <a href="{{ path('admin_client_show', {id: client.id}) }}">{{ client.name }}</a> / Nouveau compte</div>{% endblock %}
+{% block page_title %}Nouveau compte pour {{ client.name }}{% endblock %}
+
+{% block body %}
+    <div class="card">
+        {{ form_start(form) }}
+            <div class="field-group">
+                <p class="text-sm text-muted">Ce compte donnera accès à l'espace client de {{ client.name }}, limité à ses propres paiements.</p>
+                {{ form_widget(form) }}
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_show', {id: client.id}) }}">Annuler</a>
+                <button class="btn" type="submit">Créer le compte</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
