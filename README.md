@@ -88,6 +88,17 @@ d'erreur le cas échéant, visible dans les listes de paiements.
 Un compte désactivé (`active = false`) ne peut plus se connecter (appliqué via
 `AppUserChecker`, un `UserCheckerInterface` exécuté à l'authentification).
 
+### Vérification de version
+
+`/dev/version` (`ROLE_DEVELOPER`) compare le commit git actuellement déployé
+au dernier commit de la branche du dépôt canonique de l'entreprise
+(`GITHUB_UPSTREAM_REPO`/`GITHUB_UPSTREAM_BRANCH`, voir `.env`), via l'API
+GitHub — lecture seule, rien n'est ni téléchargé ni exécuté automatiquement.
+Si ce dépôt est privé, définir `GITHUB_TOKEN` (jeton en lecture seule) dans
+`.env.local`. Si l'instance est déployée sans dossier `.git` (artefact de
+build), définir `APP_COMMIT_SHA` au moment du déploiement pour que la
+comparaison reste possible.
+
 ## Prérequis
 
 - PHP 8.3+ avec les extensions `pdo_mysql` et `openssl`

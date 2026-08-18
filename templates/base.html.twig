@@ -56,8 +56,15 @@
                         {% endif %}
                         {% if is_granted('ROLE_DEVELOPER') %}
                             <div class="sidebar__section-label">Développeur</div>
-                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_' ? 'is-active' : '' }}" href="{{ path('dev_log_list') }}">
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_log' ? 'is-active' : '' }}" href="{{ path('dev_log_list') }}">
                                 {{ icons.render('inbox') }} Journal d'activité
+                            </a>
+                            {% set versionStatus = app_version_status() %}
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_version' ? 'is-active' : '' }}" href="{{ path('dev_version_show') }}">
+                                {{ icons.render('sync') }} Mises à jour
+                                {% if versionStatus.state in ['behind', 'diverged'] %}
+                                    <span class="nav-link__badge" title="En retard de {{ versionStatus.behindBy }} commit{{ versionStatus.behindBy > 1 ? 's' : '' }} sur {{ versionStatus.upstreamRepo }}">{{ versionStatus.behindBy }}</span>
+                                {% endif %}
                             </a>
                         {% endif %}
                         <div class="sidebar__section-label">Compte</div>
