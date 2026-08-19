@@ -385,6 +385,53 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
                     <tr><td>performPayment()</td><td>POST system/payments(/preview)</td><td>Exécute (ou prévisualise) le virement système→utilisateur</td></tr>
                 </tbody>
             </table>
+            <h3>Correspondances d'e-mail (<code>EmailAlias</code>)</h3>
+            <p>
+                Un payeur utilise parfois sur HelloAsso une adresse différente de celle de son
+                compte Cyclos — le crédit échoue alors avec "Erreur pendant la récupération de
+                l'utilisateur dans Cyclos", même si le compte Cyclos existe bel et bien.
+                <code>EmailAlias</code> est une règle de correction persistante, par client :
+                <code>sourceEmail</code> (l'e-mail HelloAsso qui pose problème) →
+                <code>targetEmail</code> (l'e-mail réel du compte Cyclos). Gérée depuis la fiche
+                client (bloc "Correspondances d'e-mail"), une seule fois — elle s'applique ensuite
+                automatiquement à <strong>tous les paiements futurs</strong> reçus avec cet e-mail
+                HelloAsso, sans qu'il faille corriger le problème à chaque occurrence.
+            </p>
+            <p>
+                Appliquée en tout premier dans <code>PaymentProcessor::creditCyclosAccount()</code>,
+                avant même la recherche Cyclos : si une règle existe pour
+                <code>(client, payment.payerEmail)</code>, c'est directement <code>targetEmail</code>
+                qui est utilisé pour la recherche d'utilisateur, l'anti-doublon et le paiement — la
+                tentative avec l'e-mail HelloAsso d'origine n'a jamais lieu. Le repli sur l'e-mail
+                alternatif du champ personnalisé HelloAsso (<code>getAlternativeEmail()</code>)
+                reste une voie de secours distincte, utilisée seulement si la recherche Cyclos
+                échoue malgré la règle (ou en son absence).
+            </p>
+            <div class="docs-note">
+                {{ icons.render('mail') }}
+                <p>
+                    <code>Payment</code> porte deux champs email distincts : <code>payerEmail</code>
+                    (immuable, capturé une fois à la création — le véritable e-mail HelloAsso) et
+                    <code>email</code> (mutable, réécrit après un crédit réussi avec l'e-mail
+                    effectivement utilisé, aliasé ou non). La recherche de règle
+                    <strong>doit toujours</strong> utiliser <code>payerEmail</code>, jamais
+                    <code>email</code> — sinon, une fois le crédit réussi via une règle, l'e-mail
+                    stocké devient celui de la règle elle-même et la règle ne se retrouve plus.
+                </p>
+            </div>
+            <p>
+                Sur <code>/admin/payments</code>, la colonne "E-mail HelloAsso" affiche
+                <code>payerEmail</code> pour chaque paiement, avec l'icône "règle"
+                (<code>icons.render('rule')</code> — une liste à puces cochées, pas une simple
+                coche, pour bien la distinguer visuellement du badge "déjà crédité") si une règle
+                existe déjà pour cet e-mail. Elle est calculée en une seule requête groupée par
+                client, <code>EmailAliasRepository::findSourceEmailSetForClients()</code>, pour
+                éviter le N+1 sur la page. Sinon, un bouton portant la même icône "règle" (pas une
+                enveloppe — trop ambigu, pouvait laisser penser à un envoi d'e-mail) ouvre
+                directement la création de règle avec le champ "E-mail utilisé sur HelloAsso"
+                pré-rempli (<code>ClientController::newEmailAlias()</code> lit le paramètre de
+                requête <code>?sourceEmail=</code>).
+            </p>
             <h3>Anti-doublon : une limite connue</h3>
             <p>
                 <code>hasAlreadyCreditedPayment()</code> ne compare que la <strong>dernière</strong>

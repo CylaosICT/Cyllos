@@ -6,6 +6,7 @@ use App\Entity\Payment;
 use App\Entity\PaymentStatus;
 use App\Payment\PaymentProcessor;
 use App\Repository\ClientRepository;
+use App\Repository\EmailAliasRepository;
 use App\Repository\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -25,6 +26,7 @@ class PaymentController extends AbstractController
         private readonly ClientRepository $clientRepository,
         private readonly PaymentProcessor $paymentProcessor,
         private readonly EntityManagerInterface $entityManager,
+        private readonly EmailAliasRepository $emailAliasRepository,
     ) {
     }
 
@@ -45,12 +47,15 @@ class PaymentController extends AbstractController
 
         $pagination = $this->paymentRepository->paginate($client, $page, self::PER_PAGE, $statuses);
 
+        $clientIds = array_unique(array_map(static fn (Payment $p) => $p->getClient()->getId(), $pagination['items']));
+
         return $this->render('admin/payment/list.html.twig', [
             'payments' => $pagination['items'],
             'pagination' => $pagination,
             'clients' => $this->clientRepository->findBy([], ['name' => 'ASC']),
             'selectedClient' => $client,
             'statusFilter' => \array_key_exists($statusFilter, self::STATUS_FILTERS) ? $statusFilter : null,
+            'aliasedEmails' => $this->emailAliasRepository->findSourceEmailSetForClients($clientIds),
         ]);
     }
 

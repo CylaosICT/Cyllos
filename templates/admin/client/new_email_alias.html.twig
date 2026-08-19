@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouvelle règle d'e-mail — {{ client.name }} - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / <a href="{{ path('admin_client_show', {id: client.id}) }}">{{ client.name }}</a> / Nouvelle règle d'e-mail</div>{% endblock %}
+{% block page_title %}Nouvelle règle d'e-mail pour {{ client.name }}{% endblock %}
+
+{% block body %}
+    <div class="card">
+        {{ form_start(form) }}
+            <div class="field-group">
+                <p class="text-sm text-muted">
+                    Si un payeur utilise sur HelloAsso un e-mail différent de celui de son compte Cyclos, le
+                    crédit échoue avec "Erreur pendant la récupération de l'utilisateur dans Cyclos". Cette règle
+                    corrige ça automatiquement, une fois pour toutes : chaque futur paiement reçu avec l'e-mail
+                    HelloAsso ci-dessous sera crédité sur le compte Cyclos indiqué à la place.
+                </p>
+                {{ form_widget(form) }}
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_show', {id: client.id}) }}">Annuler</a>
+                <button class="btn" type="submit">Créer la règle</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
