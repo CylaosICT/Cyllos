@@ -110,14 +110,22 @@ class VersionChecker
 
             $data = $response->toArray(false);
 
-            $remoteCommit = $data['commits'][array_key_last($data['commits'] ?? [])]['sha'] ?? $data['merge_base_commit']['sha'] ?? null;
-            $remoteDateRaw = $data['commits'][array_key_last($data['commits'] ?? [])]['commit']['committer']['date'] ?? null;
+            $commits = $data['commits'] ?? [];
+            $lastCommit = $commits === [] ? null : $commits[array_key_last($commits)];
+            $remoteCommit = $lastCommit['sha'] ?? $data['merge_base_commit']['sha'] ?? null;
+            $remoteDateRaw = $lastCommit['commit']['committer']['date'] ?? null;
 
+            // GitHub's compare API is called as compare/{localCommit}...{upstreamBranch},
+            // i.e. base=local, head=upstream. Its "status" always describes head
+            // relative to base: "ahead" means the upstream branch has commits the
+            // local checkout doesn't (local is BEHIND), and "behind" means the local
+            // checkout has commits the upstream branch doesn't (local is AHEAD).
+            // Mapping the literal strings 1:1 would report the opposite of reality.
             $ghStatus = $data['status'] ?? 'diverged';
             $state = match ($ghStatus) {
                 'identical' => RepositoryStatus::STATE_UP_TO_DATE,
-                'behind' => RepositoryStatus::STATE_BEHIND,
-                'ahead' => RepositoryStatus::STATE_AHEAD,
+                'ahead' => RepositoryStatus::STATE_BEHIND,
+                'behind' => RepositoryStatus::STATE_AHEAD,
                 default => RepositoryStatus::STATE_DIVERGED,
             };
 
@@ -126,8 +134,11 @@ class VersionChecker
                 localCommit: $localCommit,
                 remoteCommit: $remoteCommit ?? $localCommit,
                 remoteCommitDate: $remoteDateRaw !== null ? new \DateTimeImmutable($remoteDateRaw) : null,
-                behindBy: (int) ($data['behind_by'] ?? 0),
-                aheadBy: (int) ($data['ahead_by'] ?? 0),
+                // Same base/head inversion as above: GitHub's ahead_by is how many
+                // commits the upstream (head) has that local (base) doesn't — i.e.
+                // our "behindBy" — and vice versa for behind_by/aheadBy.
+                behindBy: (int) ($data['ahead_by'] ?? 0),
+                aheadBy: (int) ($data['behind_by'] ?? 0),
                 checkedAt: $now,
                 compareUrl: $data['html_url'] ?? sprintf('https://github.com/%s/compare/%s...%s', $this->upstreamRepo, $localCommit, $this->upstreamBranch),
                 errorMessage: null,
