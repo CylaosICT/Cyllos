@@ -25,6 +25,7 @@
                         <th>Date</th>
                         <th>Montant</th>
                         <th>Payeur</th>
+                        <th>E-mail HelloAsso</th>
                         <th>Statut</th>
                         <th>Erreur</th>
                         <th></th>
@@ -32,11 +33,18 @@
                 </thead>
                 <tbody>
                     {% for payment in payments %}
+                        {% set hasAlias = aliasedEmails[payment.client.id ~ '|' ~ payment.payerEmail] is defined %}
                         <tr>
                             <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
                             <td>{{ payment.paymentDate|date('d/m/Y H:i') }}</td>
                             <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €</td>
                             <td>{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
+                            <td class="cell-muted">
+                                {{ payment.payerEmail }}
+                                {% if hasAlias %}
+                                    <span class="icon-btn" title="Une règle de correction existe déjà pour cet e-mail" style="color:var(--color-success);">{{ icons.render('rule') }}</span>
+                                {% endif %}
+                            </td>
                             <td><span class="badge {{ payment.status.badgeClass }}">{{ payment.status.label }}</span></td>
                             <td class="cell-muted">{{ payment.error }}</td>
                             <td class="actions-cell">
@@ -48,6 +56,9 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('payment_action_' ~ payment.id) }}">
                                             <button class="btn btn--secondary btn--icon" type="submit" title="Créditer">{{ icons.render('send') }}</button>
                                         </form>
+                                    {% endif %}
+                                    {% if not hasAlias %}
+                                        <a class="btn btn--secondary btn--icon" href="{{ path('app_email_alias_new', {sourceEmail: payment.payerEmail}) }}" title="Créer une règle de correction pour cet e-mail">{{ icons.render('rule') }}</a>
                                     {% endif %}
                                     <form method="post" action="{{ path('app_payment_delete', {id: payment.id}) }}" data-confirm-title="Supprimer le paiement" data-confirm-message="Supprimer ce paiement dans Cyllos (sans effet sur HelloAsso ni Cyclos) ?">
                                         <input type="hidden" name="_token" value="{{ csrf_token('payment_action_' ~ payment.id) }}">

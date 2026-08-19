@@ -146,10 +146,14 @@
                                         <input type="hidden" name="_token" value="{{ csrf_token('toggle_client_user_' ~ user.id) }}">
                                         <button class="btn btn--secondary btn--sm" type="submit">{{ icons.render(user.active ? 'x' : 'check') }} {{ user.active ? 'Désactiver' : 'Réactiver' }}</button>
                                     </form>
-                                    <form method="post" action="{{ path('admin_client_delete_user', {id: client.id, userId: user.id}) }}" data-confirm-title="Supprimer le compte" data-confirm-message="Supprimer le compte {{ user.email }} ?">
-                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_user_' ~ user.id) }}">
-                                        <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
-                                    </form>
+                                    {% if user.active %}
+                                        <span class="icon-btn" title="Désactivez le compte avant de pouvoir le supprimer" style="opacity:0.4; cursor:not-allowed;">{{ icons.render('trash') }}</span>
+                                    {% else %}
+                                        <form method="post" action="{{ path('admin_client_delete_user', {id: client.id, userId: user.id}) }}" data-confirm-title="Supprimer le compte" data-confirm-message="Supprimer le compte {{ user.email }} ?">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_user_' ~ user.id) }}">
+                                            <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
