@@ -1,0 +1,57 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Règles d'e-mail - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb">{{ client.name }}</div>{% endblock %}
+{% block page_title %}Règles d'e-mail{% endblock %}
+{% block page_actions %}
+    <a class="btn btn--secondary btn--sm" href="{{ path('app_email_alias_new') }}">{{ icons.render('plus') }} Nouvelle règle</a>
+{% endblock %}
+
+{% block body %}
+    <p class="text-sm text-muted" style="margin-bottom:1.25rem;">
+        Si un payeur utilise sur HelloAsso un e-mail différent de celui de son compte Cyclos, son
+        crédit échoue. Ajoutez une règle ici pour corriger ça automatiquement, une fois pour
+        toutes — plus besoin de nous contacter pour chaque cas.
+    </p>
+
+    {% if emailAliases is empty %}
+        <div class="table-wrapper">
+            <div class="empty-state">
+                <div class="empty-state__icon">{{ icons.render('rule') }}</div>
+                <h3>Aucune règle</h3>
+                <p>Ajoutez-en une si un paiement échoue parce que l'e-mail HelloAsso du payeur diffère de son compte Cyclos.</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>E-mail HelloAsso</th>
+                        <th>E-mail Cyclos utilisé</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alias in emailAliases %}
+                        <tr>
+                            <td class="cell-primary">{{ alias.sourceEmail }}</td>
+                            <td>{{ alias.targetEmail }}</td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    <form method="post" action="{{ path('app_email_alias_delete', {id: alias.id}) }}" data-confirm-title="Supprimer la règle" data-confirm-message="Supprimer la règle pour {{ alias.sourceEmail }} ?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_email_alias_' ~ alias.id) }}">
+                                        <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

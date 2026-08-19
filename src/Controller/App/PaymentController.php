@@ -4,6 +4,7 @@ namespace App\Controller\App;
 
 use App\Entity\Payment;
 use App\Payment\PaymentProcessor;
+use App\Repository\EmailAliasRepository;
 use App\Repository\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -22,6 +23,7 @@ class PaymentController extends AbstractController
         private readonly PaymentRepository $paymentRepository,
         private readonly PaymentProcessor $paymentProcessor,
         private readonly EntityManagerInterface $entityManager,
+        private readonly EmailAliasRepository $emailAliasRepository,
     ) {
     }
 
@@ -37,6 +39,7 @@ class PaymentController extends AbstractController
             'client' => $client,
             'payments' => $pagination['items'],
             'pagination' => $pagination,
+            'aliasedEmails' => $this->emailAliasRepository->findSourceEmailSetForClients([$client->getId()]),
         ]);
     }
 

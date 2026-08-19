@@ -244,6 +244,14 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
                 <a href="#securite" data-docs-toc-target="link">Sécurité</a>). Le champ <code>active</code> bloque la
                 connexion via <code>AppUserChecker</code> quand il est à <code>false</code>.
             </p>
+            <p>
+                Un compte client doit être désactivé avant de pouvoir être supprimé — même
+                garde-fou que sur <code>Client</code> lui-même, appliqué dans
+                <code>ClientController::deleteUser()</code>. Le bouton de suppression est
+                d'ailleurs remplacé par une icône désactivée (avec info-bulle) tant que le compte
+                est actif, pour ne pas laisser croire que l'action est possible avant même de
+                cliquer.
+            </p>
 
             <h3 id="entite-activitylog">ActivityLog</h3>
             <p>
@@ -392,11 +400,19 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
                 l'utilisateur dans Cyclos", même si le compte Cyclos existe bel et bien.
                 <code>EmailAlias</code> est une règle de correction persistante, par client :
                 <code>sourceEmail</code> (l'e-mail HelloAsso qui pose problème) →
-                <code>targetEmail</code> (l'e-mail réel du compte Cyclos). Gérée depuis la fiche
-                client (bloc "Correspondances d'e-mail"), une seule fois — elle s'applique ensuite
-                automatiquement à <strong>tous les paiements futurs</strong> reçus avec cet e-mail
-                HelloAsso, sans qu'il faille corriger le problème à chaque occurrence.
+                <code>targetEmail</code> (l'e-mail réel du compte Cyclos). Créée une seule fois —
+                elle s'applique ensuite automatiquement à <strong>tous les paiements futurs</strong>
+                reçus avec cet e-mail HelloAsso, sans qu'il faille corriger le problème à chaque
+                occurrence.
             </p>
+            <p>
+                Gérable des deux côtés, sur les mêmes lignes de <code>ClientController</code> et
+                <code>EmailAliasController</code> (un contrôleur par espace) :
+            </p>
+            <ul>
+                <li><strong>Côté admin</strong> — bloc "Correspondances d'e-mail" sur la fiche client (<code>/admin/clients/{id}</code>).</li>
+                <li><strong>Côté client, en libre-service</strong> — <code>/app/regles-email</code> (<code>App\Controller\App\EmailAliasController</code>), pour qu'un client puisse corriger lui-même un problème de crédit sans avoir à contacter Cylaos. Le client qui possède la règle est <strong>toujours</strong> déduit du compte connecté (<code>$this->getUser()->getClient()</code>), jamais d'un paramètre d'URL — un client ne peut donc ni voir ni supprimer une règle appartenant à un autre client, y compris en devinant un identifiant dans l'URL de suppression (vérifié explicitement : <code>$alias-&gt;getClient() !== $client</code> → 404).</li>
+            </ul>
             <p>
                 Appliquée en tout premier dans <code>PaymentProcessor::creditCyclosAccount()</code>,
                 avant même la recherche Cyclos : si une règle existe pour
@@ -430,7 +446,10 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
                 enveloppe — trop ambigu, pouvait laisser penser à un envoi d'e-mail) ouvre
                 directement la création de règle avec le champ "E-mail utilisé sur HelloAsso"
                 pré-rempli (<code>ClientController::newEmailAlias()</code> lit le paramètre de
-                requête <code>?sourceEmail=</code>).
+                requête <code>?sourceEmail=</code>). <code>/app/payments</code> reproduit
+                exactement le même comportement pour le client sur ses propres paiements — même
+                icône, même bouton pré-rempli, mais vers <code>EmailAliasController::new()</code>
+                côté <code>/app</code>.
             </p>
             <h3>Anti-doublon : une limite connue</h3>
             <p>

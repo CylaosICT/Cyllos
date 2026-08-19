@@ -86,10 +86,15 @@ d'erreur le cas échéant, visible dans les listes de paiements.
   manuels, synchro HelloAsso à la demande, recherche globale, et comptes
   utilisateurs par client (création, réinitialisation de mot de passe,
   activation/désactivation, suppression — un compte désactivé ne peut plus
-  se connecter mais reste visible, contrairement à la suppression).
+  se connecter mais reste visible, contrairement à la suppression ; un
+  compte doit d'ailleurs être désactivé avant de pouvoir être supprimé,
+  même règle que pour un `Client`).
 - **`/app`** (`ROLE_CLIENT`) : espace self-service pour un client — liste de
   ses seuls paiements (isolation garantie par `ClientOwnsPaymentVoter`),
-  crédit et suppression.
+  crédit et suppression, et gestion de ses propres règles `EmailAlias`
+  (`/app/regles-email`) pour corriger lui-même un paiement dont l'e-mail
+  HelloAsso ne correspond pas à son compte Cyclos, sans avoir à contacter
+  Cylaos — toujours limité à son propre client, jamais un paramètre d'URL.
 - **`/dev`** (`ROLE_DEVELOPER`) : journal d'activité (`ActivityLog`), qui trace
   les créations/modifications/suppressions d'entités sensibles, les
   évènements de connexion et les appels API sortants (HelloAsso/Cyclos), via

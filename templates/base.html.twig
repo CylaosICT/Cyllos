@@ -53,6 +53,9 @@
                             <a class="nav-link {{ app.request.attributes.get('_route') starts with 'app_payment' ? 'is-active' : '' }}" href="{{ path('app_payment_list') }}">
                                 {{ icons.render('payments') }} Mes paiements
                             </a>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'app_email_alias' ? 'is-active' : '' }}" href="{{ path('app_email_alias_list') }}">
+                                {{ icons.render('rule') }} Règles d'e-mail
+                            </a>
                         {% endif %}
                         {% if is_granted('ROLE_DEVELOPER') %}
                             <div class="sidebar__section-label">Développeur</div>

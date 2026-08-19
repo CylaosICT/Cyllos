@@ -206,11 +206,19 @@ class ClientController extends AbstractController
     {
         $user = $this->getClientUserOrNotFound($client, $userId);
 
-        if ($this->isCsrfTokenValid('delete_user_' . $user->getId(), $request->request->get('_token'))) {
-            $this->entityManager->remove($user);
-            $this->entityManager->flush();
-            $this->addFlash('success', sprintf('Le compte "%s" a été supprimé.', $user->getEmail()));
+        if (!$this->isCsrfTokenValid('delete_user_' . $user->getId(), $request->request->get('_token'))) {
+            return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
         }
+
+        if ($user->isActive()) {
+            $this->addFlash('error', 'Le compte doit être désactivé avant de pouvoir être supprimé.');
+
+            return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
+        }
+
+        $this->entityManager->remove($user);
+        $this->entityManager->flush();
+        $this->addFlash('success', sprintf('Le compte "%s" a été supprimé.', $user->getEmail()));
 
         return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
     }
