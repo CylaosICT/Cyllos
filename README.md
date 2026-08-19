@@ -73,8 +73,10 @@ d'erreur le cas échéant, visible dans les listes de paiements.
 - **`/admin`** (`ROLE_ADMIN`) : vue transverse sur tous les clients — gestion
   des clients (assistant de création en 4 étapes, config HelloAsso/Cyclos/
   réglages), tous les paiements avec filtre par client, crédit/suppression
-  manuels, synchro HelloAsso à la demande, comptes utilisateurs par client,
-  recherche globale.
+  manuels, synchro HelloAsso à la demande, recherche globale, et comptes
+  utilisateurs par client (création, réinitialisation de mot de passe,
+  activation/désactivation, suppression — un compte désactivé ne peut plus
+  se connecter mais reste visible, contrairement à la suppression).
 - **`/app`** (`ROLE_CLIENT`) : espace self-service pour un client — liste de
   ses seuls paiements (isolation garantie par `ClientOwnsPaymentVoter`),
   crédit et suppression.
