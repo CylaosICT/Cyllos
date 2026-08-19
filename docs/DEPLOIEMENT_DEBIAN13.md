@@ -63,7 +63,7 @@ Installe directement depuis les dépôts Debian :
 
 ```bash
 sudo apt install -y php-fpm php-cli php-mysql php-mbstring php-xml \
-    php-curl php-intl php-opcache php-bcmath
+    php-curl php-intl php-opcache php-bcmath php-zip
 ```
 
 ### Sinon (cas actuel de Debian 13, qui livre PHP 8.3)
@@ -76,7 +76,7 @@ curl -fsSL https://packages.sury.org/php/apt.gpg | sudo tee /etc/apt/trusted.gpg
 echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
 sudo apt update
 sudo apt install -y php8.4-fpm php8.4-cli php8.4-mysql php8.4-mbstring \
-    php8.4-xml php8.4-curl php8.4-intl php8.4-opcache php8.4-bcmath
+    php8.4-xml php8.4-curl php8.4-intl php8.4-opcache php8.4-bcmath php8.4-zip
 sudo update-alternatives --set php /usr/bin/php8.4
 ```
 
