@@ -2,6 +2,7 @@
 
 namespace App\Integration\Cyclos;
 
+use App\ActivityLog\ApiCallLogger;
 use App\Entity\CyclosConfig;
 use App\Security\SecretEncryptor;
 use Psr\Log\LoggerInterface;
@@ -23,6 +24,7 @@ class CyclosClient
         private readonly HttpClientInterface $httpClient,
         private readonly SecretEncryptor $secretEncryptor,
         private readonly LoggerInterface $logger,
+        private readonly ApiCallLogger $apiCallLogger,
     ) {
     }
 
@@ -127,7 +129,7 @@ class CyclosClient
             $response = $this->request($config, 'POST', $preview ? 'system/payments/preview' : 'system/payments', [
                 'json' => [
                     'amount' => (string) $amount,
-                    'to' => $email,
+                    'subject' => $email,
                     'description' => $description,
                     'type' => $emissionType,
                 ],
@@ -150,6 +152,12 @@ class CyclosClient
         }
     }
 
+    /**
+     * All Cyclos calls funnel through here, which makes this the single place
+     * that needs to log requests for traceability (see ApiCallLogger). Basic
+     * Auth credentials never appear in $options['json']/['query'], so the
+     * logged request body is safe to store as-is.
+     */
     private function request(CyclosConfig $config, string $method, string $path, array $options = []): \Symfony\Contracts\HttpClient\ResponseInterface
     {
         $options['auth_basic'] = [
@@ -159,6 +167,31 @@ class CyclosClient
         $options['timeout'] = self::REQUEST_TIMEOUT;
         $options['headers'] = ['Accept' => 'application/json'];
 
-        return $this->httpClient->request($method, $config->getBaseUrl() . $path, $options);
+        $url = $config->getBaseUrl() . $path;
+        $requestBody = $this->loggableRequestBody($options);
+
+        try {
+            $response = $this->httpClient->request($method, $url, $options);
+            $this->apiCallLogger->record('cyclos', $method, $url, $requestBody, $response->getStatusCode(), $response->getContent(false));
+
+            return $response;
+        } catch (HttpClientExceptionInterface $exception) {
+            $this->apiCallLogger->record('cyclos', $method, $url, $requestBody, 0, $exception->getMessage());
+
+            throw $exception;
+        }
+    }
+
+    private function loggableRequestBody(array $options): ?string
+    {
+        if (isset($options['json'])) {
+            return json_encode($options['json'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        if (isset($options['query'])) {
+            return json_encode($options['query'], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        return null;
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Controller\Admin;
 
 use App\Entity\Payment;
+use App\Entity\PaymentStatus;
 use App\Payment\PaymentProcessor;
 use App\Repository\ClientRepository;
 use App\Repository\PaymentRepository;
@@ -17,7 +18,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class PaymentController extends AbstractController
 {
-    private const PER_PAGE = 25;
+    private const PER_PAGE = 12;
 
     public function __construct(
         private readonly PaymentRepository $paymentRepository,
@@ -27,20 +28,29 @@ class PaymentController extends AbstractController
     ) {
     }
 
+    private const STATUS_FILTERS = [
+        'todo' => [PaymentStatus::Todo],
+        'success' => [PaymentStatus::Success, PaymentStatus::SuccessAuto],
+        'fail' => [PaymentStatus::Fail],
+    ];
+
     #[Route(path: '', name: 'list', methods: ['GET'])]
     public function list(Request $request): Response
     {
         $clientId = $request->query->get('client');
         $client = $clientId !== null ? $this->clientRepository->find($clientId) : null;
         $page = $request->query->getInt('page', 1);
+        $statusFilter = $request->query->get('status');
+        $statuses = self::STATUS_FILTERS[$statusFilter] ?? [];
 
-        $pagination = $this->paymentRepository->paginate($client, $page, self::PER_PAGE);
+        $pagination = $this->paymentRepository->paginate($client, $page, self::PER_PAGE, $statuses);
 
         return $this->render('admin/payment/list.html.twig', [
             'payments' => $pagination['items'],
             'pagination' => $pagination,
             'clients' => $this->clientRepository->findBy([], ['name' => 'ASC']),
             'selectedClient' => $client,
+            'statusFilter' => \array_key_exists($statusFilter, self::STATUS_FILTERS) ? $statusFilter : null,
         ]);
     }
 

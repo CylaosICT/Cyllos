@@ -32,6 +32,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 class ClientController extends AbstractController
 {
     private const USERS_PER_PAGE = 10;
+    private const CLIENTS_PER_PAGE = 28;
 
     public function __construct(
         private readonly ClientRepository $clientRepository,
@@ -47,10 +48,14 @@ class ClientController extends AbstractController
     }
 
     #[Route(path: '', name: 'list', methods: ['GET'])]
-    public function list(): Response
+    public function list(Request $request): Response
     {
+        $page = $request->query->getInt('page', 1);
+        $pagination = $this->clientRepository->paginate($page, self::CLIENTS_PER_PAGE);
+
         return $this->render('admin/client/list.html.twig', [
-            'clients' => $this->clientRepository->findBy([], ['name' => 'ASC']),
+            'clients' => $pagination['items'],
+            'pagination' => $pagination,
         ]);
     }
 
@@ -68,7 +73,12 @@ class ClientController extends AbstractController
     #[Route(path: '/{id}/utilisateurs/new', requirements: ['id' => '\d+'], name: 'new_user', methods: ['GET', 'POST'])]
     public function newUser(Client $client, Request $request): Response
     {
-        $form = $this->createForm(ClientUserType::class);
+        $isFirstAccount = $this->userRepository->findByClient($client) === [];
+        $prefill = $isFirstAccount && $client->getContactEmail() !== null
+            ? ['email' => $client->getContactEmail()]
+            : [];
+
+        $form = $this->createForm(ClientUserType::class, $prefill);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -120,6 +130,20 @@ class ClientController extends AbstractController
             'targetUser' => $user,
             'form' => $form,
         ]);
+    }
+
+    #[Route(path: '/{id}/utilisateurs/{userId}/statut', requirements: ['id' => '\d+', 'userId' => '\d+'], name: 'toggle_user_active', methods: ['POST'])]
+    public function toggleUserActive(Client $client, int $userId, Request $request): Response
+    {
+        $user = $this->getClientUserOrNotFound($client, $userId);
+
+        if ($this->isCsrfTokenValid('toggle_client_user_' . $user->getId(), $request->request->get('_token'))) {
+            $user->setActive(!$user->isActive());
+            $this->entityManager->flush();
+            $this->addFlash('success', sprintf('Le compte "%s" a été %s.', $user->getEmail(), $user->isActive() ? 'réactivé' : 'désactivé'));
+        }
+
+        return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
     }
 
     #[Route(path: '/{id}/utilisateurs/{userId}/supprimer', requirements: ['id' => '\d+', 'userId' => '\d+'], name: 'delete_user', methods: ['POST'])]
@@ -356,7 +380,6 @@ class ClientController extends AbstractController
             'client' => $client,
             'form' => $form,
             'section_title' => 'HelloAsso',
-            'use_grid' => true,
         ]);
     }
 
@@ -382,7 +405,6 @@ class ClientController extends AbstractController
             'client' => $client,
             'form' => $form,
             'section_title' => 'Cyclos',
-            'use_grid' => true,
         ]);
     }
 
@@ -411,7 +433,7 @@ class ClientController extends AbstractController
     public function fetch(Client $client, Request $request): Response
     {
         if ($this->isCsrfTokenValid('client_fetch_' . $client->getId(), $request->request->get('_token'))) {
-            $added = $this->paymentProcessor->fetchMissingPayments($client);
+            $added = $this->paymentProcessor->fetchMissingPayments($client, attemptAutomaticCredit: true);
             $this->addFlash('success', sprintf('%d paiement(s) récupéré(s) depuis HelloAsso.', $added));
         }
 

@@ -66,6 +66,9 @@
                                     <span class="nav-link__badge" title="En retard de {{ versionStatus.behindBy }} commit{{ versionStatus.behindBy > 1 ? 's' : '' }} sur {{ versionStatus.upstreamRepo }}">{{ versionStatus.behindBy }}</span>
                                 {% endif %}
                             </a>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_documentation' ? 'is-active' : '' }}" href="{{ path('dev_documentation_show') }}">
+                                {{ icons.render('book') }} Documentation
+                            </a>
                         {% endif %}
                         <div class="sidebar__section-label">Compte</div>
                         <a class="nav-link {{ app.request.attributes.get('_route') starts with 'settings_' ? 'is-active' : '' }}" href="{{ path('settings_index') }}">
@@ -99,7 +102,7 @@
                         <button class="icon-btn topbar__menu-btn" type="button" data-action="sidebar#toggle" aria-label="Menu">
                             {{ icons.render('menu') }}
                         </button>
-                        <div>
+                        <div class="topbar__title-wrap">
                             {% block breadcrumb %}{% endblock %}
                             <h1 class="topbar__title">{% block page_title %}{% endblock %}</h1>
                         </div>

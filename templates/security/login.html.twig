@@ -17,6 +17,12 @@
                 <div class="flash flash--error">Identifiants invalides.</div>
             {% endif %}
 
+            {% for label, messages in app.flashes(['success', 'error']) %}
+                {% for message in messages %}
+                    <div class="flash flash--{{ label }}">{{ message }}</div>
+                {% endfor %}
+            {% endfor %}
+
             <form method="post">
                 <div class="form-row">
                     <label for="username">Adresse e-mail</label>
@@ -29,6 +35,10 @@
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
                 <button class="btn btn--block" type="submit">Se connecter</button>
             </form>
+
+            <p class="text-sm text-muted" style="margin-top:1rem; text-align:center;">
+                <a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a>
+            </p>
         </div>
     </div>
 {% endblock %}

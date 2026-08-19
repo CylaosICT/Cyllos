@@ -1,0 +1,29 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Activer la double authentification - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('settings_index') }}">Réglages</a> / Double authentification</div>{% endblock %}
+{% block page_title %}Activer la double authentification{% endblock %}
+
+{% block body %}
+    <div class="card">
+        <div class="card__body">
+            <p>1. Ajoute ce compte dans ton application d'authentification (Google Authenticator, Authy, 1Password...) en saisissant manuellement la clé ci-dessous :</p>
+            <p style="margin: 1rem 0;"><code style="font-size:1.05rem; letter-spacing:0.05em;">{{ secret }}</code></p>
+            <p class="text-sm text-muted">Ou colle cette URI si ton application le permet : <code class="cell-truncate" style="display:inline-block; max-width:100%;">{{ provisioningUri }}</code></p>
+
+            <p style="margin-top:1.5rem;">2. Entre le code à 6 chiffres généré pour confirmer :</p>
+            <form method="post" action="{{ path('settings_totp_confirm') }}">
+                <div class="form-row">
+                    <input type="text" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="123456" required autofocus>
+                </div>
+                <input type="hidden" name="_token" value="{{ csrf_token('totp_confirm') }}">
+                <div class="form-footer">
+                    <a class="btn btn--ghost" href="{{ path('settings_index') }}">Annuler</a>
+                    <button class="btn" type="submit">Confirmer et activer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

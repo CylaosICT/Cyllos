@@ -2,6 +2,7 @@
 
 namespace App\Controller\Dev;
 
+use App\Deployment\DeploymentRunner;
 use App\Deployment\VersionChecker;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -15,6 +16,7 @@ class VersionController extends AbstractController
 {
     public function __construct(
         private readonly VersionChecker $versionChecker,
+        private readonly DeploymentRunner $deploymentRunner,
     ) {
     }
 
@@ -23,6 +25,27 @@ class VersionController extends AbstractController
     {
         return $this->render('dev/version/show.html.twig', [
             'status' => $this->versionChecker->check(forceRefresh: $request->query->getBoolean('refresh')),
+        ]);
+    }
+
+    /**
+     * Runs the whitelisted deploy sequence synchronously and re-renders the
+     * page with the result — see DeploymentRunner for why it's a
+     * deliberately narrow, non-arbitrary set of commands.
+     */
+    #[Route(path: '/deployer', name: 'deploy', methods: ['POST'])]
+    #[IsGranted('ROLE_DEVELOPER')]
+    public function deploy(Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('deploy_app', $request->request->get('_token'))) {
+            return $this->redirectToRoute('dev_version_show');
+        }
+
+        $result = $this->deploymentRunner->run();
+
+        return $this->render('dev/version/show.html.twig', [
+            'status' => $this->versionChecker->check(forceRefresh: true),
+            'deployResult' => $result,
         ]);
     }
 }

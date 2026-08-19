@@ -11,10 +11,11 @@
 
     <div class="card">
         {{ form_start(form) }}
-            <div class="field-group">
+            <div class="field-group" data-controller="slug">
                 <h2 style="font-size:1rem;margin-bottom:1.1rem;">Qui est ce client ?</h2>
-                {{ form_row(form.name) }}
-                {{ form_row(form.slug) }}
+                {{ form_row(form.name, {attr: {'data-slug-target': 'source', 'data-action': 'input->slug#sync'}}) }}
+                {{ form_row(form.slug, {attr: {'data-slug-target': 'slug', 'data-action': 'input->slug#lock'}}) }}
+                {{ form_row(form.contactEmail) }}
                 {{ form_row(form.active) }}
             </div>
             <div class="form-footer">

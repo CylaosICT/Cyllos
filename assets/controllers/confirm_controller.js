@@ -24,6 +24,7 @@ export default class extends Controller {
         this.pendingForm = form;
         this.titleTarget.textContent = form.dataset.confirmTitle || 'Confirmer la suppression';
         this.messageTarget.textContent = form.dataset.confirmMessage;
+        this.confirmBtnTarget.textContent = form.dataset.confirmConfirmLabel || 'Supprimer';
         this.backdropTarget.classList.add('is-open');
         this.confirmBtnTarget.focus();
     }

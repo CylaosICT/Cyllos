@@ -2,8 +2,10 @@
 
 namespace App\Tests\Unit\Integration\HelloAsso;
 
+use App\ActivityLog\ApiCallLogger;
 use App\Integration\HelloAsso\HelloAssoClient;
 use App\Security\SecretEncryptor;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -18,6 +20,7 @@ class HelloAssoClientParseNotificationTest extends TestCase
             new MockHttpClient(),
             new SecretEncryptor(base64_encode(str_repeat('a', 32))),
             new NullLogger(),
+            new ApiCallLogger($this->createStub(EntityManagerInterface::class)),
         );
     }
 
@@ -31,7 +34,7 @@ class HelloAssoClientParseNotificationTest extends TestCase
                 'date' => '2026-08-15T10:00:00+02:00',
                 'state' => 'Authorized',
                 'payer' => ['firstName' => 'Jean', 'lastName' => 'Dupont', 'email' => 'jean@example.com'],
-                'order' => ['formSlug' => 'reelon-form'],
+                'order' => ['formSlug' => 'rollon-form'],
             ],
         ], $overrides);
     }
@@ -45,7 +48,7 @@ class HelloAssoClientParseNotificationTest extends TestCase
         self::assertSame(2000, $result->amountCents);
         self::assertSame('Authorized', $result->state);
         self::assertSame('jean@example.com', $result->payerEmail);
-        self::assertSame('reelon-form', $result->formSlug);
+        self::assertSame('rollon-form', $result->formSlug);
     }
 
     public function testIgnoresOrderEventTypeToAvoidDoubleCredit(): void

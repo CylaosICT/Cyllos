@@ -48,13 +48,44 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
-     * Global Cylaos team accounts (admins/developers), not tied to a client.
+     * Global Cylaos team accounts (admins/developers/CEO), not tied to a
+     * client. Sorted by role importance (CEO, then developer, then admin)
+     * rather than the DB column order, so it's paginated in PHP after a
+     * full fetch — acceptable since this list is small (staff accounts,
+     * not client-facing data).
      *
      * @return array{items: User[], total: int, page: int, perPage: int, pageCount: int}
      */
     public function paginateGlobalTeam(int $page, int $perPage): array
     {
-        return $this->paginate(['client' => null], $page, $perPage);
+        $page = max(1, $page);
+
+        $all = $this->createQueryBuilder('u')
+            ->andWhere('u.client IS NULL')
+            ->orderBy('u.email', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        usort($all, static fn (User $a, User $b): int => self::rolePriority($a) <=> self::rolePriority($b) ?: strcmp($a->getEmail(), $b->getEmail()));
+
+        $total = \count($all);
+
+        return [
+            'items' => \array_slice($all, ($page - 1) * $perPage, $perPage),
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'pageCount' => max(1, (int) ceil($total / $perPage)),
+        ];
+    }
+
+    private static function rolePriority(User $user): int
+    {
+        return match (true) {
+            $user->isCeo() => 0,
+            $user->isDeveloper() => 1,
+            default => 2,
+        };
     }
 
     /**

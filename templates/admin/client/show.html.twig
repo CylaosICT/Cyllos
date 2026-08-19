@@ -8,7 +8,16 @@
 {% block page_title %}
     <span class="topbar__title--with-avatar">
         {% include 'components/_client_avatar.html.twig' with {client: client, size: 'md'} only %}
-        {{ client.name }}
+        <span class="client-header-title-block">
+            <span class="client-header-name">{{ client.name }}</span>
+            <span class="client-header-meta client-header-meta--inline">
+                <span class="dot {{ client.active ? 'dot--active' : 'dot--inactive' }}"></span>
+                {{ client.active ? 'Client actif' : 'Client inactif' }}
+                <span class="text-muted">·</span>
+                <span class="text-muted">Webhook :</span>
+                <code title="{{ absolute_url(path('webhook_helloasso', {clientSlug: client.slug})) }}">{{ path('webhook_helloasso', {clientSlug: client.slug}) }}</code>
+            </span>
+        </span>
     </span>
 {% endblock %}
 {% block page_actions %}
@@ -20,13 +29,6 @@
 {% endblock %}
 
 {% block body %}
-    <div class="client-header-meta">
-        <span class="dot {{ client.active ? 'dot--active' : 'dot--inactive' }}"></span>
-        {{ client.active ? 'Client actif' : 'Client inactif' }}
-        <span class="text-muted">·</span>
-        <span class="text-muted">Webhook :</span> <code>{{ absolute_url(path('webhook_helloasso', {clientSlug: client.slug})) }}</code>
-    </div>
-
     <div class="summary-grid">
         <div class="summary-card">
             <div class="summary-card__header">
@@ -40,6 +42,7 @@
                 <dl class="kv-list">
                     <div class="kv-row"><dt>Nom</dt><dd>{{ client.name }}</dd></div>
                     <div class="kv-row"><dt>Slug</dt><dd><code>{{ client.slug }}</code></dd></div>
+                    <div class="kv-row"><dt>E-mail de contact</dt><dd>{{ client.contactEmail ?: '—' }}</dd></div>
                     <div class="kv-row"><dt>Statut</dt><dd>{{ client.active ? 'Actif' : 'Inactif' }}</dd></div>
                     <div class="kv-row"><dt>Créé le</dt><dd>{{ client.createdAt|date('d/m/Y') }}</dd></div>
                 </dl>
@@ -96,7 +99,8 @@
                     <div class="kv-row"><dt>Paiements Cyclos</dt><dd>{{ client.setting.paymentCyclosEnabled ? 'Activés' : 'Désactivés (aperçu)' }}</dd></div>
                     <div class="kv-row"><dt>Mode automatique</dt><dd>{{ client.setting.paymentAutomaticEnabled ? 'Activé' : 'Désactivé' }}</dd></div>
                     <div class="kv-row"><dt>Mail principal</dt><dd>{{ client.setting.mailRecipient }}</dd></div>
-                    <div class="kv-row"><dt>Notifier l'association</dt><dd>{{ client.setting.notifyAssociationOnPayment ? 'Activé' : 'Désactivé' }}</dd></div>
+                    <div class="kv-row"><dt>Notif. paiement réussi</dt><dd>{{ client.setting.notifySuccessOnPayment ? 'Activé' : 'Désactivé' }}</dd></div>
+                    <div class="kv-row"><dt>Notif. paiement en échec</dt><dd>{{ client.setting.notifyFailureOnPayment ? 'Activé' : 'Désactivé' }}</dd></div>
                 </dl>
             </div>
         </div>
@@ -138,6 +142,10 @@
                             <td class="actions-cell">
                                 <div class="actions">
                                     <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_reset_user_password', {id: client.id, userId: user.id}) }}">{{ icons.render('key') }} Mot de passe</a>
+                                    <form method="post" action="{{ path('admin_client_toggle_user_active', {id: client.id, userId: user.id}) }}" data-confirm-title="{{ user.active ? 'Désactiver' : 'Réactiver' }} le compte" data-confirm-message="{{ user.active ? 'Désactiver' : 'Réactiver' }} le compte {{ user.email }} ?" data-confirm-confirm-label="{{ user.active ? 'Désactiver' : 'Réactiver' }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('toggle_client_user_' ~ user.id) }}">
+                                        <button class="btn btn--secondary btn--sm" type="submit">{{ icons.render(user.active ? 'x' : 'check') }} {{ user.active ? 'Désactiver' : 'Réactiver' }}</button>
+                                    </form>
                                     <form method="post" action="{{ path('admin_client_delete_user', {id: client.id, userId: user.id}) }}" data-confirm-title="Supprimer le compte" data-confirm-message="Supprimer le compte {{ user.email }} ?">
                                         <input type="hidden" name="_token" value="{{ csrf_token('delete_user_' ~ user.id) }}">
                                         <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>

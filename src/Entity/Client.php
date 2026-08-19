@@ -39,6 +39,15 @@ class Client
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $logoFilename = null;
 
+    /**
+     * The client's own contact email — distinct from ClientSetting::mailRecipient
+     * (internal ops/technical alerts). Used to send client-facing payment
+     * notifications, and to pre-fill the very first client user account created.
+     */
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Email]
+    private ?string $contactEmail = null;
+
     #[ORM\OneToOne(mappedBy: 'client', targetEntity: HelloAssoConfig::class, cascade: ['persist', 'remove'])]
     private ?HelloAssoConfig $helloAssoConfig = null;
 
@@ -111,6 +120,18 @@ class Client
     public function setLogoFilename(?string $logoFilename): static
     {
         $this->logoFilename = $logoFilename;
+
+        return $this;
+    }
+
+    public function getContactEmail(): ?string
+    {
+        return $this->contactEmail;
+    }
+
+    public function setContactEmail(?string $contactEmail): static
+    {
+        $this->contactEmail = $contactEmail;
 
         return $this;
     }

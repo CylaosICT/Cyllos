@@ -2,6 +2,7 @@
 
 namespace App\Integration\HelloAsso;
 
+use App\ActivityLog\ApiCallLogger;
 use App\Entity\HelloAssoConfig;
 use App\Security\SecretEncryptor;
 use Psr\Log\LoggerInterface;
@@ -22,6 +23,7 @@ class HelloAssoClient
         private readonly HttpClientInterface $httpClient,
         private readonly SecretEncryptor $secretEncryptor,
         private readonly LoggerInterface $logger,
+        private readonly ApiCallLogger $apiCallLogger,
     ) {
     }
 
@@ -91,21 +93,25 @@ class HelloAssoClient
         try {
             $now = new \DateTimeImmutable();
             $beginDate = $now->modify(sprintf('-%d days', $nbDays));
-
-            $response = $this->httpClient->request('GET', $this->buildUrl($config, sprintf(
+            $query = [
+                'from' => $beginDate->format(DATE_ATOM),
+                'to' => $now->format(DATE_ATOM),
+                'states' => 'Authorized',
+            ];
+            $url = $this->buildUrl($config, sprintf(
                 'v5/organizations/%s/forms/%s/%s/payments',
                 rawurlencode($config->getOrganizationSlug()),
                 rawurlencode($config->getFormType()),
                 rawurlencode($config->getFormSlug()),
-            )), [
-                'query' => [
-                    'from' => $beginDate->format(DATE_ATOM),
-                    'to' => $now->format(DATE_ATOM),
-                    'states' => 'Authorized',
-                ],
+            ));
+
+            $response = $this->httpClient->request('GET', $url, [
+                'query' => $query,
                 'headers' => ['Authorization' => 'Bearer ' . $token],
                 'timeout' => self::REQUEST_TIMEOUT,
             ]);
+
+            $this->apiCallLogger->record('helloasso', 'GET', $url, json_encode($query, JSON_PRETTY_PRINT), $response->getStatusCode(), $response->getContent(false), 'Récupération des paiements HelloAsso');
 
             if ($response->getStatusCode() >= 300) {
                 $this->logger->error('HelloAsso payment history fetch failed with status {status} (organization={org}, formType={type}, formSlug={form}): {body}', [
@@ -139,6 +145,7 @@ class HelloAssoClient
             return $payments;
         } catch (HttpClientExceptionInterface $exception) {
             $this->logger->error('Error fetching HelloAsso payment history: {message}', ['message' => $exception->getMessage()]);
+            $this->apiCallLogger->record('helloasso', 'GET', $this->buildUrl($config, 'v5/organizations/.../payments'), null, 0, $exception->getMessage());
 
             return [];
         } finally {
@@ -161,10 +168,12 @@ class HelloAssoClient
         }
 
         try {
-            $paymentResponse = $this->httpClient->request('GET', $this->buildUrl($config, 'v5/payments/' . $paymentId), [
+            $paymentUrl = $this->buildUrl($config, 'v5/payments/' . $paymentId);
+            $paymentResponse = $this->httpClient->request('GET', $paymentUrl, [
                 'headers' => ['Authorization' => 'Bearer ' . $token],
                 'timeout' => self::REQUEST_TIMEOUT,
             ]);
+            $this->apiCallLogger->record('helloasso', 'GET', $paymentUrl, null, $paymentResponse->getStatusCode(), $paymentResponse->getContent(false), 'Recherche email alternatif — paiement');
 
             if ($paymentResponse->getStatusCode() >= 300) {
                 $this->logger->error('Error fetching HelloAsso payment {id}', ['id' => $paymentId]);
@@ -177,10 +186,12 @@ class HelloAssoClient
                 return null;
             }
 
-            $orderResponse = $this->httpClient->request('GET', $this->buildUrl($config, 'v5/orders/' . $orderId), [
+            $orderUrl = $this->buildUrl($config, 'v5/orders/' . $orderId);
+            $orderResponse = $this->httpClient->request('GET', $orderUrl, [
                 'headers' => ['Authorization' => 'Bearer ' . $token],
                 'timeout' => self::REQUEST_TIMEOUT,
             ]);
+            $this->apiCallLogger->record('helloasso', 'GET', $orderUrl, null, $orderResponse->getStatusCode(), $orderResponse->getContent(false), 'Recherche email alternatif — commande');
 
             if ($orderResponse->getStatusCode() >= 300) {
                 $this->logger->error('Error fetching HelloAsso order {id}', ['id' => $orderId]);
@@ -211,10 +222,18 @@ class HelloAssoClient
         }
     }
 
+    /**
+     * The request contains client_id/client_secret and the response contains a
+     * live bearer token — neither is safe to store in the audit trail, so this
+     * call is logged with both bodies redacted, keeping only the method/URL/
+     * status for traceability.
+     */
     private function getAccessToken(HelloAssoConfig $config): string
     {
+        $url = $this->buildUrl($config, 'oauth2/token');
+
         try {
-            $response = $this->httpClient->request('POST', $this->buildUrl($config, 'oauth2/token'), [
+            $response = $this->httpClient->request('POST', $url, [
                 'body' => [
                     'client_id' => $config->getHelloAssoClientId(),
                     'client_secret' => $this->secretEncryptor->decrypt($config->getClientSecretEncrypted()),
@@ -222,6 +241,8 @@ class HelloAssoClient
                 ],
                 'timeout' => self::REQUEST_TIMEOUT,
             ]);
+
+            $this->apiCallLogger->record('helloasso', 'POST', $url, '(identifiants OAuth2 — non journalisés)', $response->getStatusCode(), '(jeton d\'accès — non journalisé)', 'Authentification OAuth2');
 
             $data = $response->toArray(false);
             $accessToken = $data['access_token'] ?? null;
@@ -231,6 +252,8 @@ class HelloAssoClient
 
             return $accessToken;
         } catch (HttpClientExceptionInterface $exception) {
+            $this->apiCallLogger->record('helloasso', 'POST', $url, '(identifiants OAuth2 — non journalisés)', 0, $exception->getMessage(), 'Authentification OAuth2');
+
             throw new HelloAssoException('Failed to fetch HelloAsso access token: ' . $exception->getMessage(), previous: $exception);
         }
     }
