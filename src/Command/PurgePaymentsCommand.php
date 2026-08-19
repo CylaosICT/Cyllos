@@ -11,7 +11,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Purges old payment records, ported from PurgeDatabaseService.java.
+ * Purges old payment records, ported from PurgeDatabaseService.java. Only
+ * payments successfully credited in Cyclos are eligible: anything still
+ * pending or in error stays forever, so a client dispute always has a record
+ * to point to (see PaymentRepository::findPurgeableIdsByInsertionDateBefore).
  */
 #[AsCommand(
     name: 'app:payments:purge',
@@ -37,11 +40,11 @@ class PurgePaymentsCommand extends Command
         $retentionDays = (int) $input->getOption('retention-days');
 
         $threshold = (new \DateTimeImmutable())->modify(sprintf('-%d days', $retentionDays));
-        $ids = $this->paymentRepository->findIdsByInsertionDateBefore($threshold);
+        $ids = $this->paymentRepository->findPurgeableIdsByInsertionDateBefore($threshold);
 
         $this->paymentRepository->deleteByIds($ids);
 
-        $io->success(sprintf('%d paiement(s) supprimé(s) (rétention : %d jours).', \count($ids), $retentionDays));
+        $io->success(sprintf('%d paiement(s) crédité(s) supprimé(s) (rétention : %d jours). Les paiements non traités ou en échec ne sont jamais purgés.', \count($ids), $retentionDays));
 
         return Command::SUCCESS;
     }

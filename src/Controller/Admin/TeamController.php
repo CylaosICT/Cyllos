@@ -30,7 +30,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 #[IsGranted('ROLE_ADMIN')]
 class TeamController extends AbstractController
 {
-    private const PER_PAGE = 20;
+    private const PER_PAGE = 28;
 
     public function __construct(
         private readonly UserRepository $userRepository,

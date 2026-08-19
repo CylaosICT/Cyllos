@@ -8,10 +8,10 @@
         {{ icons.render('chevron-right', 'style="transform:rotate(90deg)"') }}
     </button>
     <div class="dropdown__menu" data-dropdown-target="menu">
-        <a class="dropdown__item {{ selectedClient is null ? 'is-selected' : '' }}" href="{{ path('admin_payment_list') }}">Tous les clients</a>
+        <a class="dropdown__item {{ selectedClient is null ? 'is-selected' : '' }}" href="{{ path('admin_payment_list', {status: statusFilter|default(null)}) }}">Tous les clients</a>
         <div class="dropdown__divider"></div>
         {% for client in clients %}
-            <a class="dropdown__item {{ selectedClient and selectedClient.id == client.id ? 'is-selected' : '' }}" href="{{ path('admin_payment_list', {client: client.id}) }}">
+            <a class="dropdown__item {{ selectedClient and selectedClient.id == client.id ? 'is-selected' : '' }}" href="{{ path('admin_payment_list', {client: client.id, status: statusFilter|default(null)}) }}">
                 {% include 'components/_client_avatar.html.twig' with {client: client, size: 'sm'} only %}
                 {{ client.name }}
             </a>

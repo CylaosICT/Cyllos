@@ -32,6 +32,9 @@ security:
 
     access_control:
         - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/verification-2fa, roles: PUBLIC_ACCESS }
+        - { path: ^/mot-de-passe-oublie, roles: PUBLIC_ACCESS }
+        - { path: ^/reinitialiser-mot-de-passe, roles: PUBLIC_ACCESS }
         - { path: ^/webhook/helloasso, roles: PUBLIC_ACCESS }
         - { path: ^/dev, roles: ROLE_DEVELOPER }
         - { path: ^/admin, roles: ROLE_ADMIN }

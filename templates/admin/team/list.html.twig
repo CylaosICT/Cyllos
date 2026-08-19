@@ -2,7 +2,7 @@
 {% import 'components/icons.html.twig' as icons %}
 
 {% block title %}Équipe - Cyllos{% endblock %}
-{% block content_width %}content--wide{% endblock %}
+{% block content_width %}content--full{% endblock %}
 
 {% block page_title %}Équipe Cylaos{% endblock %}
 {% block page_actions %}
@@ -19,52 +19,57 @@
             </div>
         </div>
     {% else %}
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>E-mail</th>
-                        <th>Rôle</th>
-                        <th>Statut</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in pagination.items %}
-                        {% set isSelf = user.email == app.user.userIdentifier %}
-                        {% set canManage = not (user.isDeveloper or user.isCeo) or is_granted('ROLE_CEO') %}
-                        <tr>
-                            <td class="cell-primary">{{ user.email }}</td>
-                            <td>{{ user.isCeo ? 'CEO' : (user.isDeveloper ? 'Développeur' : 'Administrateur') }}</td>
-                            <td>
-                                <span class="status-pill">
-                                    <span class="dot {{ user.active ? 'dot--active' : 'dot--inactive' }}"></span>
-                                    {{ user.active ? 'Actif' : 'Inactif' }}
-                                </span>
-                            </td>
-                            <td class="actions-cell">
-                                <div class="actions">
-                                    {% if not isSelf and canManage %}
-                                        <a class="btn btn--secondary btn--sm" href="{{ path('admin_team_reset_password', {id: user.id}) }}">{{ icons.render('key') }} Mot de passe</a>
-                                    {% endif %}
-                                    {% if is_granted('ROLE_CEO') and not isSelf and not user.isCeo %}
-                                        <form method="post" action="{{ path('admin_team_toggle_active', {id: user.id}) }}" data-confirm-title="{{ user.active ? 'Désactiver' : 'Réactiver' }} le compte" data-confirm-message="{{ user.active ? 'Désactiver' : 'Réactiver' }} le compte {{ user.email }} ?">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('toggle_active_' ~ user.id) }}">
-                                            <button class="btn btn--secondary btn--icon" type="submit" title="{{ user.active ? 'Désactiver' : 'Réactiver' }}">{{ icons.render(user.active ? 'x' : 'check') }}</button>
-                                        </form>
-                                    {% endif %}
-                                    {% if not isSelf and canManage %}
-                                        <form method="post" action="{{ path('admin_team_delete', {id: user.id}) }}" data-confirm-title="Supprimer le compte" data-confirm-message="Supprimer le compte {{ user.email }} ?">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('delete_team_user_' ~ user.id) }}">
-                                            <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
-                                        </form>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% set chunks = pagination.items|batch(14) %}
+        <div class="table-columns {{ chunks|length < 2 ? 'table-columns--single' : '' }}">
+            {% for chunk in chunks %}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>E-mail</th>
+                                <th>Rôle</th>
+                                <th>Statut</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in chunk %}
+                                {% set isSelf = user.email == app.user.userIdentifier %}
+                                {% set canManage = not (user.isDeveloper or user.isCeo) or is_granted('ROLE_CEO') %}
+                                <tr>
+                                    <td class="cell-primary">{{ user.email }}</td>
+                                    <td>{{ user.isCeo ? 'CEO' : (user.isDeveloper ? 'Développeur' : 'Administrateur') }}</td>
+                                    <td>
+                                        <span class="status-pill">
+                                            <span class="dot {{ user.active ? 'dot--active' : 'dot--inactive' }}"></span>
+                                            {{ user.active ? 'Actif' : 'Inactif' }}
+                                        </span>
+                                    </td>
+                                    <td class="actions-cell">
+                                        <div class="actions">
+                                            {% if not isSelf and canManage %}
+                                                <a class="btn btn--secondary btn--sm" href="{{ path('admin_team_reset_password', {id: user.id}) }}">{{ icons.render('key') }} Mot de passe</a>
+                                            {% endif %}
+                                            {% if is_granted('ROLE_CEO') and not isSelf and not user.isCeo %}
+                                                <form method="post" action="{{ path('admin_team_toggle_active', {id: user.id}) }}" data-confirm-title="{{ user.active ? 'Désactiver' : 'Réactiver' }} le compte" data-confirm-message="{{ user.active ? 'Désactiver' : 'Réactiver' }} le compte {{ user.email }} ?" data-confirm-confirm-label="{{ user.active ? 'Désactiver' : 'Réactiver' }}">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle_active_' ~ user.id) }}">
+                                                    <button class="btn btn--secondary btn--sm" type="submit">{{ icons.render(user.active ? 'x' : 'check') }} {{ user.active ? 'Désactiver' : 'Réactiver' }}</button>
+                                                </form>
+                                            {% endif %}
+                                            {% if not isSelf and canManage %}
+                                                <form method="post" action="{{ path('admin_team_delete', {id: user.id}) }}" data-confirm-title="Supprimer le compte" data-confirm-message="Supprimer le compte {{ user.email }} ?">
+                                                    <input type="hidden" name="_token" value="{{ csrf_token('delete_team_user_' ~ user.id) }}">
+                                                    <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
+                                                </form>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
         </div>
         {% include 'components/_pagination.html.twig' with {pagination: pagination, route: 'admin_team_list', params: {}} only %}
     {% endif %}

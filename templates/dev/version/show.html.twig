@@ -1,0 +1,109 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Mises à jour - Cyllos{% endblock %}
+{% block content_width %}content--narrow{% endblock %}
+
+{% block page_title %}Mises à jour{% endblock %}
+{% block page_actions %}
+    <a class="btn btn--secondary" href="{{ path('dev_version_show', {refresh: 1}) }}">{{ icons.render('sync') }} Vérifier maintenant</a>
+    {% if is_granted('ROLE_DEVELOPER') and status.state in ['behind', 'diverged'] %}
+        <form method="post" action="{{ path('dev_version_deploy') }}" data-confirm-title="Déployer la mise à jour" data-confirm-message="Ceci va exécuter git pull, composer install, les migrations et vider le cache directement sur ce serveur. Continuer ?" data-confirm-confirm-label="Déployer">
+            <input type="hidden" name="_token" value="{{ csrf_token('deploy_app') }}">
+            <button class="btn btn--danger" type="submit">{{ icons.render('arrow-right') }} Déployer la mise à jour</button>
+        </form>
+    {% endif %}
+{% endblock %}
+
+{% block body %}
+    <div class="card">
+        <div class="card__header">
+            <div>
+                <h2>État par rapport à {{ status.upstreamRepo }}</h2>
+                <p>Branche suivie : <code>{{ status.upstreamBranch }}</code></p>
+            </div>
+            {% if status.state == 'up_to_date' %}
+                <span class="badge badge--success">{{ icons.render('check') }} À jour</span>
+            {% elseif status.state == 'behind' %}
+                <span class="badge badge--warning">En retard de {{ status.behindBy }} commit{{ status.behindBy > 1 ? 's' : '' }}</span>
+            {% elseif status.state == 'ahead' %}
+                <span class="badge badge--waiting">En avance de {{ status.aheadBy }} commit{{ status.aheadBy > 1 ? 's' : '' }}</span>
+            {% elseif status.state == 'diverged' %}
+                <span class="badge badge--warning">Divergent ({{ status.behindBy }} en retard / {{ status.aheadBy }} en avance)</span>
+            {% else %}
+                <span class="badge badge--todo">Indisponible</span>
+            {% endif %}
+        </div>
+
+        <div class="card__body">
+            <dl class="kv-list">
+                <div class="kv-row">
+                    <dt>Commit déployé ici</dt>
+                    <dd>{% if status.localCommit %}<code>{{ status.localShort }}</code>{% else %}<span class="text-muted">inconnu</span>{% endif %}</dd>
+                </div>
+                <div class="kv-row">
+                    <dt>Dernier commit sur {{ status.upstreamBranch }}</dt>
+                    <dd>
+                        {% if status.remoteCommit %}
+                            <code>{{ status.remoteShort }}</code>
+                            {% if status.remoteCommitDate %} · {{ status.remoteCommitDate|date('d/m/Y H:i') }}{% endif %}
+                        {% else %}
+                            <span class="text-muted">inconnu</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                <div class="kv-row">
+                    <dt>Vérifié</dt>
+                    <dd>{{ status.checkedAt|date('d/m/Y H:i:s') }}</dd>
+                </div>
+                {% if status.compareUrl %}
+                    <div class="kv-row">
+                        <dt>Détail</dt>
+                        <dd><a href="{{ status.compareUrl }}" target="_blank" rel="noopener">Voir la comparaison sur GitHub {{ icons.render('external') }}</a></dd>
+                    </div>
+                {% endif %}
+            </dl>
+
+            {% if status.errorMessage %}
+                <div class="flash flash--error" style="margin-top:1rem;">
+                    {{ icons.render('x') }} {{ status.errorMessage }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <p class="text-sm text-muted" style="margin-top:1rem;">
+        Comparaison en lecture seule : rien n'est modifié ni téléchargé automatiquement.
+        Le résultat est mis en cache 5 minutes ; utilisez "Vérifier maintenant" pour forcer un contrôle immédiat.
+        {% if is_granted('ROLE_DEVELOPER') %}
+            Le bouton "Déployer la mise à jour" (réservé aux développeurs et au CEO) exécute réellement
+            <code>git pull</code>, <code>composer install</code>, les migrations et un vidage de cache sur ce
+            serveur — à utiliser en connaissance de cause (voir la documentation, section Déploiement).
+        {% endif %}
+    </p>
+
+    {% if deployResult is defined %}
+        <div class="card" style="margin-top:1.25rem;">
+            <div class="card__header">
+                <div>
+                    <h2>Résultat du déploiement</h2>
+                </div>
+                {% if deployResult.success %}
+                    <span class="badge badge--success">{{ icons.render('check') }} Réussi</span>
+                {% else %}
+                    <span class="badge badge--fail">{{ icons.render('x') }} Échec</span>
+                {% endif %}
+            </div>
+            <div class="card__body">
+                {% for step in deployResult.steps %}
+                    <h4 style="margin-top: {{ loop.first ? '0' : '1.25rem' }};">
+                        {{ step.exitCode == 0 ? icons.render('check') : (step.exitCode is null ? '—' : icons.render('x')) }}
+                        {{ step.label }}
+                        <code class="text-sm">{{ step.command }}</code>
+                    </h4>
+                    <pre class="api-log-modal__pre">{{ step.output }}</pre>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

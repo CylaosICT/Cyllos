@@ -37,3 +37,16 @@ services:
     App\Client\ClientLogoUploader:
         arguments:
             $uploadDirectory: '%kernel.project_dir%/public/uploads/client-logos'
+
+    App\Deployment\VersionChecker:
+        arguments:
+            $cache: '@cache.app'
+            $projectDir: '%kernel.project_dir%'
+            $upstreamRepo: '%env(GITHUB_UPSTREAM_REPO)%'
+            $upstreamBranch: '%env(GITHUB_UPSTREAM_BRANCH)%'
+            $githubToken: '%env(GITHUB_TOKEN)%'
+            $commitShaOverride: '%env(APP_COMMIT_SHA)%'
+
+    App\Deployment\DeploymentRunner:
+        arguments:
+            $projectDir: '%kernel.project_dir%'

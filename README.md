@@ -20,8 +20,14 @@ un slug unique et possède sa propre configuration :
   passe (chiffré), groupes Cyclos "pro"/"particulier" et types d'émission
   associés ;
 - `ClientSetting` : paiements Cyclos activés ou non (mode "aperçu" sinon),
-  crédit automatique activé ou non, email de notification, notification de
-  l'association à chaque paiement.
+  crédit automatique activé ou non, email d'alerte technique, et deux
+  notifications indépendantes envoyées à `Client::contactEmail` (l'adresse de
+  contact de l'organisation, distincte des comptes utilisateurs) : à chaque
+  paiement réussi (`notifySuccessOnPayment`) et à chaque échec
+  (`notifyFailureOnPayment`). Réglables depuis la fiche client côté admin,
+  mais aussi en libre-service par le client lui-même depuis `/settings`
+  (carte "Notifications de paiement", visible uniquement des comptes
+  `ROLE_CLIENT`).
 
 Les secrets (`clientSecret` HelloAsso, mot de passe Cyclos) sont chiffrés en
 base avec `APP_ENCRYPTION_KEY` via `SecretEncryptor` — jamais stockés en clair.
@@ -48,10 +54,15 @@ base avec `APP_ENCRYPTION_KEY` via `SecretEncryptor` — jamais stockés en clai
    paiements Cyclos sont désactivés pour ce client (`PreviewOk`).
 4. **Rattrapage** : en complément du webhook temps réel, `app:helloasso:fetch`
    interroge l'historique HelloAsso de chaque client actif pour récupérer tout
-   paiement manqué (notification perdue, HelloAsso indisponible, etc.), sans
-   déclencher de crédit automatique — il reste `Todo` en attente d'une action
-   manuelle. C'est ce mécanisme qui doit tourner via le Scheduler (voir plus
-   bas) pour combler les trous.
+   paiement manqué (notification perdue, HelloAsso indisponible, etc.). Deux
+   usages de ce même mécanisme, avec un comportement différent :
+   - **planifié** (Scheduler, toutes les minutes) : sans déclencher de crédit
+     automatique — les paiements récupérés restent `Todo`, c'est un filet de
+     sécurité, pas une deuxième voie de crédit ;
+   - **synchro manuelle** (bouton "Synchro HelloAsso" côté admin) : chaque
+     paiement récupéré est ensuite passé dans la même décision de crédit
+     automatique que le webhook (mêmes règles : `paymentAutomaticEnabled`,
+     `maxAmount`, délai de 12h).
 
 Chaque paiement (`Payment`) garde un statut (`todo`, `too_high`, `too_late`,
 `preview_ok`, `success`, `success_auto`, `fail`, `waiting`) et un message
@@ -68,25 +79,75 @@ d'erreur le cas échéant, visible dans les listes de paiements.
   ses seuls paiements (isolation garantie par `ClientOwnsPaymentVoter`),
   crédit et suppression.
 - **`/dev`** (`ROLE_DEVELOPER`) : journal d'activité (`ActivityLog`), qui trace
-  les créations/modifications/suppressions d'entités sensibles et les
-  évènements de connexion, via des listeners Doctrine et Security.
+  les créations/modifications/suppressions d'entités sensibles, les
+  évènements de connexion et les appels API sortants (HelloAsso/Cyclos), via
+  des listeners Doctrine et Security ; page de version et mise à jour.
 - **`/settings`** : self-service pour tout utilisateur connecté (thème clair/
-  sombre, email, mot de passe).
+  sombre, email, mot de passe, double authentification optionnelle).
 
 ### Rôles
 
-- `ROLE_CLIENT` : accès à ses propres paiements uniquement.
+- `ROLE_CLIENT` : accès à ses propres paiements uniquement. Seul rôle pouvant
+  utiliser la réinitialisation de mot de passe en libre-service (voir
+  ci-dessous).
 - `ROLE_ADMIN` : accès global à `/admin` ; peut créer/gérer les clients et les
   comptes admin classiques, mais ne peut ni modifier ni supprimer un compte
   développeur ou CEO (visible en lecture seule dans `/admin/equipe`).
 - `ROLE_DEVELOPER` (hérite de `ROLE_ADMIN`) : accès en plus au journal
-  d'activité.
+  d'activité, y compris le droit de le vider entièrement, et peut déclencher
+  une mise à jour de l'application depuis `/dev/version`.
 - `ROLE_CEO` (hérite de `ROLE_ADMIN` et `ROLE_DEVELOPER`) : seul rôle habilité
   à attribuer `ROLE_DEVELOPER` à la création d'un compte, à gérer les comptes
   développeur/CEO, et à activer/désactiver des comptes admin.
 
 Un compte désactivé (`active = false`) ne peut plus se connecter (appliqué via
 `AppUserChecker`, un `UserCheckerInterface` exécuté à l'authentification).
+
+### Mot de passe oublié
+
+Réservé aux comptes clients (`ROLE_CLIENT`) — jamais aux comptes admin,
+développeur ou CEO, qui doivent être réinitialisés par un développeur/CEO
+(`/admin/equipe`). Ce filtre est appliqué côté serveur, pas seulement caché
+dans l'interface. Le lien `/mot-de-passe-oublie` envoie un jeton à usage
+unique (hash SHA-256 stocké en base, jamais le jeton en clair), valable 60
+minutes ; le message de retour est identique que l'adresse existe ou non,
+pour ne pas permettre l'énumération des comptes.
+
+### Double authentification (2FA)
+
+Optionnelle, activable par n'importe quel compte (admin, client, développeur,
+CEO) depuis `/settings`. TOTP (RFC 6238) : secret par compte, code à 6
+chiffres renouvelé toutes les 30 secondes, compatible avec toute application
+d'authentification standard (Google Authenticator, Authy, 1Password...). Une
+fois activée, chaque connexion demande le code en plus du mot de passe ; la
+désactivation exige de resaisir le mot de passe du compte.
+
+### Vérification de version
+
+`/dev/version` (`ROLE_DEVELOPER`) compare le commit git actuellement déployé
+au dernier commit de la branche du dépôt canonique de l'entreprise
+(`GITHUB_UPSTREAM_REPO`/`GITHUB_UPSTREAM_BRANCH`, voir `.env`), via l'API
+GitHub — lecture seule, rien n'est ni téléchargé ni exécuté automatiquement.
+Si ce dépôt est privé, définir `GITHUB_TOKEN` (jeton en lecture seule) dans
+`.env.local`. Si l'instance est déployée sans dossier `.git` (artefact de
+build), définir `APP_COMMIT_SHA` au moment du déploiement pour que la
+comparaison reste possible.
+
+Quand l'application n'est pas à jour, un bouton "Déployer la mise à jour"
+apparaît sur cette page pour `ROLE_DEVELOPER`/`ROLE_CEO`. Il exécute dans l'ordre
+`git pull --ff-only`, `composer install`, les migrations Doctrine en attente,
+puis `cache:clear`, et affiche le résultat détaillé de chaque étape (sortie et
+code de retour). C'est une action réelle sur le checkout de production — voir
+[Déploiement en production](#déploiement-en-production) pour les prérequis
+(notamment que l'utilisateur système du serveur web doit pouvoir exécuter
+`git`/`composer` et écrire dans le dossier de l'application).
+
+### Journal d'activité
+
+`/dev/journal` peut être entièrement vidé (`ROLE_DEVELOPER`/`ROLE_CEO`
+uniquement, pas un simple `ROLE_ADMIN`), après avoir resaisi le mot de passe
+du compte connecté. Suppression définitive, sans corbeille ni export
+préalable.
 
 ## Prérequis
 
@@ -174,3 +235,221 @@ dans Docker) et rester actif en permanence.
 ```bash
 php bin/phpunit
 ```
+
+## Déploiement en production
+
+Procédure pour un serveur **Debian 12 (Bookworm)** ou **Ubuntu 24.04 LTS**. Les
+commandes sont identiques sur les deux distributions sauf mention explicite
+d'une différence.
+
+### 1. Paquets système
+
+MariaDB, Nginx, Git, Composer et les extensions PHP requises :
+
+```bash
+sudo apt update
+sudo apt install -y mariadb-server nginx git unzip curl \
+    php8.3-fpm php8.3-cli php8.3-mysql php8.3-mbstring php8.3-xml \
+    php8.3-curl php8.3-intl php8.3-opcache
+```
+
+**Différence Debian/Ubuntu — dépôt PHP 8.3 :**
+- **Ubuntu 24.04** fournit PHP 8.3 nativement, la commande ci-dessus suffit.
+- **Debian 12** ne fournit que PHP 8.2 dans ses dépôts officiels. Ajouter le
+  dépôt tiers [Sury](https://packages.sury.org/) avant d'installer les
+  paquets `php8.3-*` :
+  ```bash
+  sudo apt install -y apt-transport-https lsb-release ca-certificates
+  curl -fsSL https://packages.sury.org/php/apt.gpg | sudo tee /etc/apt/trusted.gpg.d/php.gpg >/dev/null
+  echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
+  sudo apt update
+  ```
+
+Composer, si absent des dépôts :
+
+```bash
+curl -sS https://getcomposer.org/installer | php
+sudo mv composer.phar /usr/local/bin/composer
+```
+
+### 2. Base de données
+
+```bash
+sudo mysql -u root -e "
+CREATE DATABASE cyllos CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'cyllos'@'localhost' IDENTIFIED BY 'un-mot-de-passe-solide';
+GRANT ALL PRIVILEGES ON cyllos.* TO 'cyllos'@'localhost';
+FLUSH PRIVILEGES;
+"
+```
+
+### 3. Utilisateur système et récupération du code
+
+L'application tourne sous un utilisateur dédié (jamais `root`), membre du
+groupe du serveur web pour que Nginx puisse lire les fichiers publics :
+
+```bash
+sudo adduser --system --group --home /var/www/cyllos cyllos
+sudo usermod -aG cyllos www-data
+sudo -u cyllos git clone https://github.com/CylaosICT/Cyllos.git /var/www/cyllos
+cd /var/www/cyllos
+```
+
+Si le bouton "Déployer la mise à jour" de `/dev/version` doit fonctionner
+(voir plus haut), l'utilisateur qui exécute PHP-FPM (`www-data` par défaut)
+doit lui-même avoir les droits d'écriture sur ce dossier et l'accès à `git`
+et `composer` dans son `PATH` — le plus simple est de faire tourner le pool
+PHP-FPM sous l'utilisateur `cyllos` plutôt que `www-data` (voir la directive
+`user`/`group` du pool à l'étape 6).
+
+### 4. Dépendances et configuration
+
+```bash
+sudo -u cyllos composer install --no-dev --optimize-autoloader --no-interaction
+sudo -u cyllos cp .env .env.local
+```
+
+Éditer `.env.local` (jamais commité) :
+
+```
+APP_ENV=prod
+APP_SECRET=<généré avec: php -r "echo bin2hex(random_bytes(16));">
+DATABASE_URL="mysql://cyllos:un-mot-de-passe-solide@127.0.0.1:3306/cyllos?serverVersion=10.11.2-MariaDB&charset=utf8mb4"
+MAILER_DSN=smtp://... # DSN réel du serveur d'envoi
+GITHUB_UPSTREAM_REPO=CylaosICT/Cyllos
+GITHUB_UPSTREAM_BRANCH=main
+```
+
+Générer et renseigner la clé de chiffrement des secrets HelloAsso/Cyclos :
+
+```bash
+sudo -u cyllos php bin/console app:generate-encryption-key
+# copier la sortie dans .env.local : APP_ENCRYPTION_KEY=...
+```
+
+### 5. Base de données, cache, assets
+
+```bash
+sudo -u cyllos php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+sudo -u cyllos php bin/console cache:clear --env=prod
+sudo -u cyllos php bin/console asset-map:compile --env=prod
+sudo -u cyllos php bin/console app:user:create admin@cylaos.example "un-mot-de-passe-solide" --admin
+```
+
+### 6. PHP-FPM
+
+Créer un pool dédié `/etc/php/8.3/fpm/pool.d/cyllos.conf` (le chemin
+`8.3` est identique sur les deux distributions une fois le paquet installé) :
+
+```ini
+[cyllos]
+user = cyllos
+group = cyllos
+listen = /run/php/php8.3-fpm-cyllos.sock
+listen.owner = www-data
+listen.group = www-data
+pm = dynamic
+pm.max_children = 10
+pm.start_servers = 2
+pm.min_spare_servers = 1
+pm.max_spare_servers = 4
+```
+
+```bash
+sudo systemctl restart php8.3-fpm
+```
+
+### 7. Nginx
+
+`/etc/nginx/sites-available/cyllos` :
+
+```nginx
+server {
+    listen 80;
+    server_name cyllos.exemple.fr;
+    root /var/www/cyllos/public;
+
+    location / {
+        try_files $uri /index.php$is_args$args;
+    }
+
+    location ~ ^/index\.php(/|$) {
+        fastcgi_pass unix:/run/php/php8.3-fpm-cyllos.sock;
+        fastcgi_split_path_info ^(.+\.php)(/.*)$;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param DOCUMENT_ROOT $document_root;
+        internal;
+    }
+
+    location ~ \.php$ {
+        return 404;
+    }
+}
+```
+
+```bash
+sudo ln -s /etc/nginx/sites-available/cyllos /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Certificat HTTPS (Let's Encrypt, identique sur les deux distributions) :
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d cyllos.exemple.fr
+```
+
+### 8. Worker du Scheduler (rattrapage + purge)
+
+Sans ce service actif en permanence, `app:helloasso:fetch` et
+`app:payments:purge` ne se déclenchent jamais (voir
+[Tâches planifiées](#tâches-planifiées)). Unité systemd
+`/etc/systemd/system/cyllos-scheduler.service` :
+
+```ini
+[Unit]
+Description=Cyllos - worker Scheduler (rattrapage HelloAsso + purge)
+After=network.target mariadb.service
+
+[Service]
+Type=simple
+User=cyllos
+WorkingDirectory=/var/www/cyllos
+ExecStart=/usr/bin/php bin/console messenger:consume scheduler_default --env=prod --time-limit=3600
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now cyllos-scheduler
+sudo systemctl status cyllos-scheduler
+```
+
+`--time-limit=3600` fait sortir le worker proprement toutes les heures ;
+`Restart=always` le relance immédiatement — évite qu'une fuite mémoire
+éventuelle s'accumule indéfiniment sur un process qui ne redémarre jamais.
+
+### 9. Mises à jour ultérieures
+
+Manuellement :
+
+```bash
+cd /var/www/cyllos
+sudo -u cyllos git pull --ff-only
+sudo -u cyllos composer install --no-dev --optimize-autoloader --no-interaction
+sudo -u cyllos php bin/console doctrine:migrations:migrate --no-interaction --env=prod
+sudo -u cyllos php bin/console cache:clear --env=prod
+sudo systemctl restart php8.3-fpm cyllos-scheduler
+```
+
+Ou via le bouton "Déployer la mise à jour" de `/dev/version`
+(`ROLE_DEVELOPER`/`ROLE_CEO`), qui exécute les quatre premières étapes automatiquement — voir
+[Vérification de version](#vérification-de-version). Il ne redémarre pas
+PHP-FPM ni le worker Scheduler ; un `cache:clear` suffit dans la plupart des
+cas, mais un redémarrage manuel du worker reste nécessaire après une
+modification du code du Scheduler lui-même.

@@ -7,6 +7,7 @@ use App\Entity\Payment;
 use App\Entity\PaymentStatus;
 use App\Integration\Cyclos\CyclosClient;
 use App\Integration\HelloAsso\HelloAssoClient;
+use App\Integration\HelloAsso\HelloAssoFetchedPayment;
 use App\Integration\HelloAsso\HelloAssoNotificationPayload;
 use App\Notification\NotificationMailer;
 use App\Repository\PaymentRepository;
@@ -89,6 +90,91 @@ class PaymentProcessor
 
         $payment = $this->persistNewPayment($client, $parsed, PaymentStatus::Todo);
 
+        return $this->applyAutomaticDecision($client, $payment, $parsed->state === 'Waiting');
+    }
+
+    /**
+     * Catch-up fetch: pulls the client's recent HelloAsso payment history and saves
+     * any payment not already known. Set $attemptAutomaticCredit to true to run each
+     * newly-discovered payment through the same automatic-credit decision as the
+     * real-time webhook (used by the manual "Synchro Hello Asso" button); left false
+     * for the periodic safety-net command, which only records missed payments as
+     * "todo" for manual review.
+     */
+    public function fetchMissingPayments(Client $client, bool $attemptAutomaticCredit = false): int
+    {
+        $haConfig = $client->getHelloAssoConfig();
+        $known = array_flip($this->paymentRepository->findAllHelloAssoIdsForClient($client));
+
+        $fetched = $this->helloAssoClient->fetchPaymentsHistory($haConfig, $haConfig->getFetchNbDays());
+        $added = 0;
+
+        foreach ($fetched as $item) {
+            if (isset($known[$item->helloAssoPaymentId])) {
+                continue;
+            }
+
+            if ($attemptAutomaticCredit) {
+                $this->ingestFetchedPayment($client, $item);
+            } else {
+                $payment = new Payment(
+                    client: $client,
+                    helloAssoPaymentId: $item->helloAssoPaymentId,
+                    paymentDate: $this->parseDate($item->rawDate),
+                    amount: $item->amountCents / 100,
+                    payerFirstName: $item->payerFirstName,
+                    payerLastName: $item->payerLastName,
+                    email: $item->payerEmail,
+                );
+                $this->entityManager->persist($payment);
+            }
+
+            $known[$item->helloAssoPaymentId] = true;
+            $added++;
+        }
+
+        if ($added > 0) {
+            $this->entityManager->flush();
+        }
+
+        return $added;
+    }
+
+    /**
+     * Mirrors the webhook's "amount over the limit" gate, then runs the shared
+     * automatic-credit decision — used only when a manual sync should behave like
+     * a real-time notification for each payment it discovers.
+     */
+    private function ingestFetchedPayment(Client $client, HelloAssoFetchedPayment $item): void
+    {
+        $haConfig = $client->getHelloAssoConfig();
+        $setting = $client->getSetting();
+
+        if ($item->amountCents > $haConfig->getMaxAmount() * 100) {
+            $payment = $this->persistFetchedPayment($client, $item, PaymentStatus::TooHigh);
+            $this->mailer->send(
+                $setting->getMailRecipient(),
+                '[Cyllos] Paiement dépassant la limite',
+                sprintf("Un paiement a dépassé la limite autorisée, approbation manuelle requise.\nId : %d\nMontant : %.2f €", $payment->getHelloAssoPaymentId(), $payment->getAmount()),
+            );
+
+            return;
+        }
+
+        $payment = $this->persistFetchedPayment($client, $item, PaymentStatus::Todo);
+        $this->applyAutomaticDecision($client, $payment, reportedWaiting: false);
+    }
+
+    /**
+     * Shared automatic-credit decision applied to a freshly-persisted "todo"
+     * payment: bails out if automatic crediting is disabled for the client,
+     * marks late/still-waiting payments without attempting a credit, otherwise
+     * attempts the Cyclos credit and sends the success/failure notification.
+     */
+    private function applyAutomaticDecision(Client $client, Payment $payment, bool $reportedWaiting): PaymentProcessingResult
+    {
+        $setting = $client->getSetting();
+
         if (!$setting->isPaymentAutomaticEnabled()) {
             return new PaymentProcessingResult(PaymentStatus::Todo);
         }
@@ -105,7 +191,7 @@ class PaymentProcessor
             return new PaymentProcessingResult(PaymentStatus::TooLate);
         }
 
-        if ($parsed->state === 'Waiting') {
+        if ($reportedWaiting) {
             $payment->setStatus(PaymentStatus::Waiting);
             $this->entityManager->flush();
             $this->mailer->send(
@@ -123,65 +209,26 @@ class PaymentProcessor
             $payment->setStatus(PaymentStatus::SuccessAuto);
             $this->entityManager->flush();
 
-            if ($setting->isNotifyAssociationOnPayment()) {
+            if ($setting->isNotifySuccessOnPayment() && $client->getContactEmail() !== null) {
                 $this->mailer->send(
-                    $setting->getMailRecipient(),
+                    $client->getContactEmail(),
                     '[Cyllos] Paiement réussi :)',
-                    sprintf('Un paiement a été effectué avec succès.\nId : %d', $payment->getHelloAssoPaymentId()),
+                    sprintf('Un paiement a été effectué avec succès.\nId : %d\nMontant : %.2f €', $payment->getHelloAssoPaymentId(), $payment->getAmount()),
                 );
             }
 
             return new PaymentProcessingResult(PaymentStatus::SuccessAuto, $result->errors);
         }
 
-        if ($setting->isNotifyAssociationOnPayment()) {
+        if ($setting->isNotifyFailureOnPayment() && $client->getContactEmail() !== null) {
             $this->mailer->send(
-                $setting->getMailRecipient(),
+                $client->getContactEmail(),
                 '[Cyllos] Paiement en échec :(',
-                sprintf("Un paiement n'a pas pu être effectué.\nId : %d\nErreurs : %s", $payment->getHelloAssoPaymentId(), implode(', ', $result->errors)),
+                sprintf("Un paiement n'a pas pu être effectué.\nId : %d\nMontant : %.2f €", $payment->getHelloAssoPaymentId(), $payment->getAmount()),
             );
         }
 
         return $result;
-    }
-
-    /**
-     * Catch-up fetch: pulls the client's recent HelloAsso payment history and saves
-     * any payment not already known as "todo", without triggering automatic credit
-     * (mirrors the manual "Synchro Hello Asso" button in the legacy tool).
-     */
-    public function fetchMissingPayments(Client $client): int
-    {
-        $haConfig = $client->getHelloAssoConfig();
-        $known = array_flip($this->paymentRepository->findAllHelloAssoIdsForClient($client));
-
-        $fetched = $this->helloAssoClient->fetchPaymentsHistory($haConfig, $haConfig->getFetchNbDays());
-        $added = 0;
-
-        foreach ($fetched as $item) {
-            if (isset($known[$item->helloAssoPaymentId])) {
-                continue;
-            }
-
-            $payment = new Payment(
-                client: $client,
-                helloAssoPaymentId: $item->helloAssoPaymentId,
-                paymentDate: $this->parseDate($item->rawDate),
-                amount: $item->amountCents / 100,
-                payerFirstName: $item->payerFirstName,
-                payerLastName: $item->payerLastName,
-                email: $item->payerEmail,
-            );
-            $this->entityManager->persist($payment);
-            $known[$item->helloAssoPaymentId] = true;
-            $added++;
-        }
-
-        if ($added > 0) {
-            $this->entityManager->flush();
-        }
-
-        return $added;
     }
 
     /**
@@ -279,6 +326,25 @@ class PaymentProcessor
             payerFirstName: $parsed->payerFirstName,
             payerLastName: $parsed->payerLastName,
             email: $parsed->payerEmail,
+        );
+        $payment->setStatus($status);
+
+        $this->entityManager->persist($payment);
+        $this->entityManager->flush();
+
+        return $payment;
+    }
+
+    private function persistFetchedPayment(Client $client, HelloAssoFetchedPayment $item, PaymentStatus $status): Payment
+    {
+        $payment = new Payment(
+            client: $client,
+            helloAssoPaymentId: $item->helloAssoPaymentId,
+            paymentDate: $this->parseDate($item->rawDate),
+            amount: $item->amountCents / 100,
+            payerFirstName: $item->payerFirstName,
+            payerLastName: $item->payerLastName,
+            email: $item->payerEmail,
         );
         $payment->setStatus($status);
 

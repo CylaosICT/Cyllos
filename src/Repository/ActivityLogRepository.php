@@ -28,4 +28,35 @@ class ActivityLogRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    public function deleteAll(): int
+    {
+        return (int) $this->createQueryBuilder('l')
+            ->delete()
+            ->getQuery()
+            ->execute();
+    }
+
+    /**
+     * @return array{items: ActivityLog[], total: int, page: int, perPage: int, pageCount: int}
+     */
+    public function paginate(int $page, int $perPage): array
+    {
+        $page = max(1, $page);
+
+        $total = (int) $this->createQueryBuilder('l')
+            ->select('COUNT(l.id)')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $items = $this->findRecent($perPage, ($page - 1) * $perPage);
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'pageCount' => max(1, (int) ceil($total / $perPage)),
+        ];
+    }
 }

@@ -40,13 +40,15 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Paginated payment list, optionally scoped to a client, with the Client
-     * relation eager-loaded to avoid an N+1 query per row when the list
-     * displays the client name (admin cross-client view).
+     * Paginated payment list, optionally scoped to a client and/or a set of
+     * statuses, with the Client relation eager-loaded to avoid an N+1 query
+     * per row when the list displays the client name (admin cross-client
+     * view).
      *
+     * @param PaymentStatus[] $statuses
      * @return array{items: Payment[], total: int, page: int, perPage: int, pageCount: int}
      */
-    public function paginate(?Client $client, int $page, int $perPage): array
+    public function paginate(?Client $client, int $page, int $perPage, array $statuses = []): array
     {
         $page = max(1, $page);
 
@@ -57,6 +59,10 @@ class PaymentRepository extends ServiceEntityRepository
 
         if ($client !== null) {
             $qb->andWhere('p.client = :client')->setParameter('client', $client);
+        }
+
+        if ($statuses !== []) {
+            $qb->andWhere('p.status IN (:statuses)')->setParameter('statuses', $statuses);
         }
 
         $total = (int) (clone $qb)
@@ -112,14 +118,22 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
+     * Ids eligible for purge: only payments actually credited in Cyclos
+     * (Success/SuccessAuto). Anything not yet processed, or that errored out
+     * (Fail, TooHigh, TooLate, Waiting, Todo), is kept indefinitely — it's the
+     * only record of an unresolved payment, and a client dispute needs it to
+     * still exist no matter how old it is.
+     *
      * @return int[]
      */
-    public function findIdsByInsertionDateBefore(\DateTimeImmutable $date): array
+    public function findPurgeableIdsByInsertionDateBefore(\DateTimeImmutable $date): array
     {
         $result = $this->createQueryBuilder('p')
             ->select('p.id')
             ->andWhere('p.insertionDate < :date')
+            ->andWhere('p.status IN (:statuses)')
             ->setParameter('date', $date)
+            ->setParameter('statuses', [PaymentStatus::Success, PaymentStatus::SuccessAuto])
             ->getQuery()
             ->getScalarResult();
 

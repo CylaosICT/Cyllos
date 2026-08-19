@@ -49,6 +49,28 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 10)]
     private string $theme = self::THEME_LIGHT;
 
+    /**
+     * Password reset flow — client accounts only (see PasswordResetController).
+     * Stores a hash of the token, never the raw value handed out in the email
+     * link, so a database read alone can't be used to reset the password.
+     */
+    #[ORM\Column(length: 64, nullable: true)]
+    private ?string $resetTokenHash = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $resetTokenExpiresAt = null;
+
+    /**
+     * TOTP two-factor authentication, opt-in per account (any role). The
+     * secret is stored encrypted at rest (see SecretEncryptor), decrypted
+     * only at verification time.
+     */
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $totpSecretEncrypted = null;
+
+    #[ORM\Column]
+    private bool $totpEnabled = false;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -155,6 +177,48 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setTheme(string $theme): static
     {
         $this->theme = \in_array($theme, [self::THEME_LIGHT, self::THEME_DARK], true) ? $theme : self::THEME_LIGHT;
+
+        return $this;
+    }
+
+    public function getResetTokenHash(): ?string
+    {
+        return $this->resetTokenHash;
+    }
+
+    public function getResetTokenExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->resetTokenExpiresAt;
+    }
+
+    public function setResetToken(?string $hash, ?\DateTimeImmutable $expiresAt): static
+    {
+        $this->resetTokenHash = $hash;
+        $this->resetTokenExpiresAt = $expiresAt;
+
+        return $this;
+    }
+
+    public function getTotpSecretEncrypted(): ?string
+    {
+        return $this->totpSecretEncrypted;
+    }
+
+    public function setTotpSecretEncrypted(?string $totpSecretEncrypted): static
+    {
+        $this->totpSecretEncrypted = $totpSecretEncrypted;
+
+        return $this;
+    }
+
+    public function isTotpEnabled(): bool
+    {
+        return $this->totpEnabled;
+    }
+
+    public function setTotpEnabled(bool $totpEnabled): static
+    {
+        $this->totpEnabled = $totpEnabled;
 
         return $this;
     }

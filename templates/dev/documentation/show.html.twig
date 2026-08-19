@@ -1,0 +1,849 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Documentation - Cyllos{% endblock %}
+{% block content_width %}content--full{% endblock %}
+
+{% block page_title %}Documentation{% endblock %}
+
+{% block body %}
+<div class="docs-layout" data-controller="docs-toc">
+    <nav class="docs-toc">
+        <div class="docs-toc__title">Sommaire</div>
+        <a href="#vue-ensemble" data-docs-toc-target="link">Vue d'ensemble</a>
+        <a href="#architecture" data-docs-toc-target="link">Architecture technique</a>
+        <a href="#multi-tenant" data-docs-toc-target="link">Modèle multi-tenant</a>
+        <a href="#entites" data-docs-toc-target="link">Entités du domaine</a>
+        <a class="docs-toc__sub" href="#entite-client" data-docs-toc-target="link">Client</a>
+        <a class="docs-toc__sub" href="#entite-payment" data-docs-toc-target="link">Payment</a>
+        <a class="docs-toc__sub" href="#entite-user" data-docs-toc-target="link">User</a>
+        <a class="docs-toc__sub" href="#entite-activitylog" data-docs-toc-target="link">ActivityLog</a>
+        <a href="#securite" data-docs-toc-target="link">Sécurité &amp; rôles</a>
+        <a href="#cycle-paiement" data-docs-toc-target="link">Cycle de vie d'un paiement</a>
+        <a href="#helloasso" data-docs-toc-target="link">Intégration HelloAsso</a>
+        <a href="#cyclos" data-docs-toc-target="link">Intégration Cyclos</a>
+        <a href="#webhook" data-docs-toc-target="link">Webhook &amp; rattrapage</a>
+        <a href="#scheduler" data-docs-toc-target="link">Tâches planifiées</a>
+        <a href="#journal" data-docs-toc-target="link">Journal d'activité &amp; traçabilité API</a>
+        <a href="#notifications" data-docs-toc-target="link">Notifications par e-mail</a>
+        <a href="#mot-de-passe-oublie" data-docs-toc-target="link">Mot de passe oublié</a>
+        <a href="#double-auth" data-docs-toc-target="link">Double authentification (2FA)</a>
+        <a href="#recherche" data-docs-toc-target="link">Recherche globale</a>
+        <a href="#ui-patterns" data-docs-toc-target="link">Composants d'interface</a>
+        <a href="#deploiement" data-docs-toc-target="link">Déploiement &amp; configuration</a>
+        <a href="#mise-a-jour" data-docs-toc-target="link">Mise à jour depuis l'interface</a>
+        <a href="#tests" data-docs-toc-target="link">Tests</a>
+        <a href="#historique" data-docs-toc-target="link">Incidents résolus</a>
+    </nav>
+
+    <div class="docs-content">
+
+        <section id="vue-ensemble" class="docs-section" data-docs-toc-target="section">
+            <h2>Vue d'ensemble</h2>
+            <p>
+                Cyllos écoute les paiements HelloAsso de plusieurs clients (des monnaies locales
+                complémentaires gérées par Cylaos, comme Le RolloN, La Cigogne, Le Buzuk) et
+                crédite automatiquement le compte Cyclos correspondant à chaque paiement reçu.
+                C'est une réécriture multi-tenant d'un outil plus ancien, <code>Hellos</code>
+                (Java/Spring Boot), qui exigeait une instance déployée par client. Cyllos remplace
+                ce modèle par une application unique qui gère l'ensemble des clients, chacun avec
+                sa propre configuration HelloAsso et Cyclos, stockée en base plutôt qu'en fichiers
+                de configuration séparés.
+            </p>
+            <div class="docs-note">
+                {{ icons.render('inbox') }}
+                <p>
+                    Cette page est écrite directement en Twig/HTML (pas de CMS externe) et vit dans
+                    le dépôt aux côtés du code qu'elle décrit — <code>templates/dev/documentation/show.html.twig</code>.
+                    Elle est donc versionnée comme le reste : toute modification de comportement
+                    mérite une mise à jour de la section correspondante ici, dans le même commit.
+                </p>
+            </div>
+            <h3>Ce que fait concrètement l'application</h3>
+            <ul>
+                <li>Reçoit les notifications de paiement HelloAsso en temps réel (webhook) et via un rattrapage périodique (Scheduler).</li>
+                <li>Décide, selon la configuration du client, si le paiement doit être crédité automatiquement sur Cyclos ou laissé en attente d'une action manuelle.</li>
+                <li>Appelle l'API REST de Cyclos pour retrouver l'utilisateur destinataire et exécuter le virement système→utilisateur.</li>
+                <li>Fournit un espace d'administration transverse (tous les clients) et un espace self-service par client (ses propres paiements uniquement).</li>
+                <li>Journalise toute action sensible (création/modification/suppression d'entité, connexions, appels API externes) pour audit.</li>
+            </ul>
+        </section>
+
+        <section id="architecture" class="docs-section" data-docs-toc-target="section">
+            <h2>Architecture technique</h2>
+            <table class="docs-table">
+                <thead><tr><th>Couche</th><th>Choix</th></tr></thead>
+                <tbody>
+                    <tr><td>Framework</td><td>Symfony 8.1, PHP 8.3+</td></tr>
+                    <tr><td>ORM / base</td><td>Doctrine ORM 3, migrations Doctrine, MariaDB 11</td></tr>
+                    <tr><td>Vues</td><td>Twig, Symfony UX / Stimulus pour l'interactivité JS (pas de framework front séparé)</td></tr>
+                    <tr><td>Assets</td><td>Symfony AssetMapper (pas de bundler externe type Webpack)</td></tr>
+                    <tr><td>Tâches planifiées</td><td>Symfony Scheduler + Messenger (transport Doctrine)</td></tr>
+                    <tr><td>Appels HTTP sortants</td><td><code>Symfony\Contracts\HttpClient\HttpClientInterface</code>, jamais de client HTTP tiers</td></tr>
+                    <tr><td>Sécurité</td><td>Symfony Security, provider entité <code>User</code>, hiérarchie de rôles</td></tr>
+                    <tr><td>Tests</td><td>PHPUnit, tests unitaires + fonctionnels (client HTTP simulé Symfony)</td></tr>
+                </tbody>
+            </table>
+            <h3>Organisation des dossiers</h3>
+            <div class="docs-code">src/
+├── ActivityLog/         Écoute Doctrine (audit) + logger d'appels API externes
+├── Client/              Upload/suppression du logo client
+├── Command/             Commandes console (création d'utilisateur, purge, rattrapage, clé de chiffrement)
+├── Controller/
+│   ├── Admin/           Espace admin transverse (clients, paiements, équipe, recherche)
+│   ├── App/             Espace self-service client (ses paiements uniquement)
+│   └── Dev/             Espace développeur (journal, version, documentation)
+├── Deployment/          Comparaison du commit local avec le dépôt GitHub canonique
+├── Entity/              Entités Doctrine
+├── Form/                Types de formulaire Symfony Form
+├── Integration/
+│   ├── HelloAsso/       Client HelloAsso (OAuth2 + API v5)
+│   └── Cyclos/          Client Cyclos (Basic Auth + API REST)
+├── Notification/        Envoi d'e-mails
+├── Payment/             Orchestration métier (PaymentProcessor)
+├── Repository/          Repositories Doctrine (recherche, pagination)
+├── Scheduler/           Déclaration des tâches planifiées
+├── Security/             Chiffrement des secrets, contrôle d'accès (UserChecker, Voter)
+└── Twig/                Extensions Twig (ex. statut de version)</div>
+        </section>
+
+        <section id="multi-tenant" class="docs-section" data-docs-toc-target="section">
+            <h2>Modèle multi-tenant</h2>
+            <p>
+                Une seule base de données, un seul déploiement. La frontière entre clients (le
+                "tenant") est l'entité <code>Client</code> : chaque <code>Payment</code>, chaque
+                compte utilisateur <code>ROLE_CLIENT</code>, chaque configuration HelloAsso/Cyclos
+                est rattachée à un <code>Client</code> précis. Il n'existe pas de séparation
+                physique (schéma, base) entre clients — l'isolation est appliquée au niveau
+                applicatif :
+            </p>
+            <ul>
+                <li>Les requêtes de l'espace <code>/app</code> (self-service) sont systématiquement filtrées par le client de l'utilisateur connecté.</li>
+                <li><code>ClientOwnsPaymentVoter</code> vérifie, pour toute action sur un <code>Payment</code>, que l'utilisateur appartient bien au client propriétaire (ou est admin global).</li>
+                <li>Les identifiants HelloAsso/Cyclos de chaque client sont stockés en base (secrets chiffrés), pas en fichier <code>.env</code> — contrairement à l'ancien modèle Hellos qui exigeait une instance par client.</li>
+            </ul>
+            <div class="docs-code">// ClientOwnsPaymentVoter.php
+protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
+{
+    $user = $token->getUser();
+    if (!$user instanceof User) {
+        return false;
+    }
+    if (\in_array('ROLE_ADMIN', $user->getRoles(), true)) {
+        return true;
+    }
+    /** @var Payment $payment */
+    $payment = $subject;
+    return $user->getClient() !== null && $user->getClient() === $payment->getClient();
+}</div>
+        </section>
+
+        <section id="entites" class="docs-section" data-docs-toc-target="section">
+            <h2>Entités du domaine</h2>
+
+            <h3 id="entite-client">Client</h3>
+            <p>
+                Le tenant. Porte un nom, un <code>slug</code> unique (utilisé dans l'URL du
+                webhook et pour l'identifier dans les URLs admin), un statut actif/inactif, un
+                <code>contactEmail</code> optionnel, et trois relations one-to-one :
+                <code>HelloAssoConfig</code>, <code>CyclosConfig</code>, <code>ClientSetting</code>.
+                Un client doit être désactivé avant de pouvoir être supprimé (garde-fou dans
+                <code>ClientController::delete()</code>) ; la suppression efface aussi ses
+                paiements, ses comptes utilisateurs et son logo uploadé.
+            </p>
+            <p>
+                <code>contactEmail</code> est l'adresse de contact du client en tant
+                qu'organisation — distincte des emails des comptes utilisateurs
+                (<code>User::email</code>), qui appartiennent à des personnes précises et peuvent
+                changer indépendamment. Deux usages : c'est le destinataire des notifications de
+                paiement (voir <a href="#notifications" data-docs-toc-target="link">Notifications par e-mail</a>), et
+                elle pré-remplit le champ email quand on crée le tout premier compte utilisateur
+                d'un client (<code>ClientController::newUser()</code> — uniquement si le client
+                n'a encore aucun compte, pour ne pas écraser une saisie manuelle sur les comptes
+                suivants).
+            </p>
+
+            <h4>HelloAssoConfig</h4>
+            <table class="docs-table">
+                <thead><tr><th>Champ</th><th>Rôle</th></tr></thead>
+                <tbody>
+                    <tr><td>apiUrl</td><td>Racine de l'API HelloAsso (prod ou sandbox)</td></tr>
+                    <tr><td>helloAssoClientId / clientSecretEncrypted</td><td>Identifiants OAuth2 <code>client_credentials</code> (secret chiffré, voir <a href="#securite" data-docs-toc-target="link">Sécurité</a>)</td></tr>
+                    <tr><td>organizationSlug, formType, formSlug</td><td>Identifient précisément la campagne HelloAsso à surveiller</td></tr>
+                    <tr><td>maxAmount</td><td>Plafond au-delà duquel un paiement est mis en attente d'approbation manuelle plutôt que crédité automatiquement</td></tr>
+                    <tr><td>extraMailFieldName</td><td>Nom du champ personnalisé de commande contenant un email alternatif (si le payeur a utilisé un email différent de son compte Cyclos)</td></tr>
+                    <tr><td>fetchNbDays</td><td>Fenêtre de jours couverte par le rattrapage périodique</td></tr>
+                </tbody>
+            </table>
+
+            <h4>CyclosConfig</h4>
+            <table class="docs-table">
+                <thead><tr><th>Champ</th><th>Rôle</th></tr></thead>
+                <tbody>
+                    <tr><td>baseUrl</td><td>Racine de l'API REST Cyclos (toujours terminée par <code>/</code>)</td></tr>
+                    <tr><td>technicalUserId / passwordEncrypted</td><td>Identifiant <strong>numérique interne</strong> Cyclos (pas le login) + mot de passe chiffré, utilisés en Basic Auth</td></tr>
+                    <tr><td>groupProInternal / groupsPartInternal</td><td>Nom(s) interne(s) des groupes Cyclos "professionnels" / "particuliers" — détermine le type d'émission à utiliser selon le groupe du destinataire</td></tr>
+                    <tr><td>emissionProInternal / emissionPartInternal</td><td>Nom interne (qualifié <code>compteType.typeDePaiement</code>) du type de paiement système→utilisateur à utiliser pour chaque catégorie</td></tr>
+                </tbody>
+            </table>
+
+            <h4>ClientSetting</h4>
+            <table class="docs-table">
+                <thead><tr><th>Champ</th><th>Rôle</th></tr></thead>
+                <tbody>
+                    <tr><td>paymentCyclosEnabled</td><td>Si faux, les paiements passent par <code>system/payments/preview</code> (aucun mouvement réel) plutôt que <code>system/payments</code></td></tr>
+                    <tr><td>paymentAutomaticEnabled</td><td>Si faux, tout paiement reçu reste au statut <code>Todo</code> en attente d'un crédit manuel</td></tr>
+                    <tr><td>mailRecipient</td><td>Destinataire des alertes techniques (retard, montant trop élevé, etc.)</td></tr>
+                    <tr><td>notifySuccessOnPayment</td><td>Envoie un e-mail à <code>Client::contactEmail</code> à chaque paiement crédité avec succès</td></tr>
+                    <tr><td>notifyFailureOnPayment</td><td>Envoie un e-mail à <code>Client::contactEmail</code> à chaque échec de crédit</td></tr>
+                </tbody>
+            </table>
+            <p class="text-sm text-muted">
+                Voir <a href="#notifications" data-docs-toc-target="link">Notifications par e-mail</a> pour le détail de ces deux réglages.
+            </p>
+
+            <h3 id="entite-payment">Payment</h3>
+            <p>
+                Un paiement HelloAsso importé dans Cyllos. Clé d'unicité composite applicative :
+                <code>(client_id, hello_asso_payment_id)</code> — le même ID HelloAsso peut se
+                répéter d'un client à l'autre, mais jamais deux fois pour le même client
+                (contrainte <code>client_helloasso_payment_unique</code>). Porte un statut
+                (<code>PaymentStatus</code>, enum PHP) et un message d'erreur tronqué à 700
+                caractères en cas d'échec.
+            </p>
+            <table class="docs-table">
+                <thead><tr><th>Statut</th><th>Signification</th></tr></thead>
+                <tbody>
+                    <tr><td>Todo</td><td>Reçu, en attente de crédit (manuel ou automatique désactivé)</td></tr>
+                    <tr><td>TooHigh</td><td>Montant supérieur à <code>maxAmount</code> — jamais crédité automatiquement</td></tr>
+                    <tr><td>TooLate</td><td>Reçu plus de 12h après la date du paiement (<code>NUMBER_LATE_HOURS_ACCEPTED</code>)</td></tr>
+                    <tr><td>Waiting</td><td>HelloAsso l'a signalé "en attente" (état <code>Waiting</code>, pas encore <code>Authorized</code>)</td></tr>
+                    <tr><td>PreviewOk</td><td>Aurait réussi, mais les paiements Cyclos sont désactivés pour ce client (mode aperçu)</td></tr>
+                    <tr><td>Success / SuccessAuto</td><td>Réellement crédité sur Cyclos (manuellement / automatiquement)</td></tr>
+                    <tr><td>Fail</td><td>Tentative de crédit échouée (voir <code>getError()</code> pour le détail)</td></tr>
+                </tbody>
+            </table>
+            <div class="docs-note docs-note--warning">
+                {{ icons.render('trash') }}
+                <p>
+                    La purge planifiée (<code>app:payments:purge</code>) ne supprime <strong>que</strong>
+                    les paiements <code>Success</code>/<code>SuccessAuto</code> plus vieux que le
+                    délai de rétention. Tout paiement non traité ou en échec reste en base
+                    indéfiniment — c'est la seule trace d'un paiement non résolu, et un litige
+                    client doit toujours pouvoir s'appuyer dessus. Voir
+                    <code>PaymentRepository::findPurgeableIdsByInsertionDateBefore()</code>.
+                </p>
+            </div>
+
+            <h3 id="entite-user">User</h3>
+            <p>
+                Un seul type d'entité pour tous les profils : administrateurs Cylaos globaux
+                (<code>client = null</code>) et comptes clients (<code>client</code> renseigné,
+                <code>ROLE_CLIENT</code>). Un compte peut cumuler plusieurs rôles via un tableau
+                <code>roles</code>, complété par la hiérarchie de rôles Symfony (voir
+                <a href="#securite" data-docs-toc-target="link">Sécurité</a>). Le champ <code>active</code> bloque la
+                connexion via <code>AppUserChecker</code> quand il est à <code>false</code>.
+            </p>
+
+            <h3 id="entite-activitylog">ActivityLog</h3>
+            <p>
+                Journal d'audit unique servant deux usages : les changements d'entités
+                (<code>client.updated</code>, <code>payment.created</code>, …) et, depuis peu,
+                la trace complète des appels API sortants (<code>api.helloasso</code>,
+                <code>api.cyclos</code>). Voir la section <a href="#journal" data-docs-toc-target="link">Journal d'activité</a>
+                pour le détail.
+            </p>
+        </section>
+
+        <section id="securite" class="docs-section" data-docs-toc-target="section">
+            <h2>Sécurité &amp; rôles</h2>
+            <p>
+                Quatre rôles, organisés en hiérarchie (<code>config/packages/security.yaml</code>) :
+                un rôle hérité donne automatiquement accès à tout ce que couvre le rôle parent,
+                sans avoir à le lister explicitement sur chaque compte.
+            </p>
+            <div class="docs-code">role_hierarchy:
+    ROLE_DEVELOPER: ROLE_ADMIN
+    ROLE_CEO: [ROLE_ADMIN, ROLE_DEVELOPER]</div>
+            <table class="docs-table">
+                <thead><tr><th>Rôle</th><th>Portée</th></tr></thead>
+                <tbody>
+                    <tr><td>ROLE_CLIENT</td><td>Accès à <code>/app</code>, ses propres paiements uniquement (voir <code>ClientOwnsPaymentVoter</code>)</td></tr>
+                    <tr><td>ROLE_ADMIN</td><td>Accès à <code>/admin</code> — gestion de tous les clients, tous les paiements, création de comptes admin classiques. Ne peut ni modifier ni supprimer un compte développeur/CEO (lecture seule dans <code>/admin/equipe</code>)</td></tr>
+                    <tr><td>ROLE_DEVELOPER</td><td>Hérite de ROLE_ADMIN + accès à <code>/dev</code> (journal, version, documentation) + peut vider le journal d'activité + peut déclencher une mise à jour depuis <code>/dev/version</code></td></tr>
+                    <tr><td>ROLE_CEO</td><td>Hérite de ROLE_ADMIN et ROLE_DEVELOPER + seul rôle habilité à attribuer ROLE_DEVELOPER à la création d'un compte, gérer les comptes développeur/CEO, et activer/désactiver des comptes admin</td></tr>
+                </tbody>
+            </table>
+            <p>Le contrôle d'accès applicatif s'appuie sur trois mécanismes complémentaires, à des niveaux différents :</p>
+            <ul>
+                <li><strong>Attribut <code>#[IsGranted(...)]</code></strong> sur chaque contrôleur/action — le premier filtre, déclaratif.</li>
+                <li><strong><code>ClientOwnsPaymentVoter</code></strong> — logique métier fine (propriété d'une ressource), pas exprimable par un simple rôle.</li>
+                <li><strong>Gardes explicites en contrôleur</strong> — ex. <code>TeamController::assertCanManage()</code> qui interdit à un admin simple de modifier un compte développeur/CEO, même si l'UI masque déjà le bouton (la protection serveur ne doit jamais reposer uniquement sur l'UI cachée).</li>
+            </ul>
+            <h3>Chiffrement des secrets</h3>
+            <p>
+                Le <code>clientSecret</code> HelloAsso et le mot de passe technique Cyclos sont
+                chiffrés en base avec AES-256-GCM (<code>SecretEncryptor</code>), jamais stockés
+                en clair. La clé (<code>APP_ENCRYPTION_KEY</code>, 32 octets encodés en base64)
+                vit uniquement dans <code>.env.local</code>/l'environnement de production, jamais
+                committée. Générée via :
+            </p>
+            <div class="docs-code">php bin/console app:generate-encryption-key</div>
+            <h3>Comptes désactivés</h3>
+            <p>
+                <code>active = false</code> est appliqué au moment de l'authentification par
+                <code>AppUserChecker</code> (implémente <code>UserCheckerInterface</code>,
+                <code>checkPreAuth()</code>), pas seulement affiché comme information dans l'UI —
+                un compte désactivé ne peut physiquement pas se connecter.
+            </p>
+        </section>
+
+        <section id="cycle-paiement" class="docs-section" data-docs-toc-target="section">
+            <h2>Cycle de vie d'un paiement</h2>
+            <p>Orchestré par <code>PaymentProcessor</code>, porté depuis <code>PaymentService.java</code>/<code>CyclosService.java</code> côté Hellos.</p>
+            <div class="docs-flow">
+                <div class="docs-flow__step"><strong>1. Réception</strong><span>Webhook HelloAsso ou rattrapage périodique</span></div>
+                <div class="docs-flow__arrow">{{ icons.render('arrow-right') }}</div>
+                <div class="docs-flow__step"><strong>2. Validation</strong><span>Formulaire correct, montant sous la limite, état autorisé, pas de doublon</span></div>
+                <div class="docs-flow__arrow">{{ icons.render('arrow-right') }}</div>
+                <div class="docs-flow__step"><strong>3. Décision</strong><span>Auto activé ? En retard ? En attente HelloAsso ?</span></div>
+                <div class="docs-flow__arrow">{{ icons.render('arrow-right') }}</div>
+                <div class="docs-flow__step"><strong>4. Crédit Cyclos</strong><span>Recherche utilisateur → résolution émission → anti-doublon → paiement</span></div>
+            </div>
+            <h3>1–2. Réception et validation</h3>
+            <p>
+                <code>PaymentProcessor::handleWebhookNotification()</code> délègue le parsing
+                structurel à <code>HelloAssoClient::parseNotification()</code>, qui ignore les
+                événements <code>Order</code> (envoyés en doublon du <code>Payment</code>
+                correspondant — les traiter créerait un double crédit) et tout ce qui n'est pas
+                un événement <code>Payment</code> bien formé. Ensuite : le <code>formSlug</code>
+                doit correspondre exactement à la configuration du client, le montant doit être
+                sous <code>maxAmount</code>, l'état doit être <code>Authorized</code> ou
+                <code>Waiting</code>, et le paiement ne doit pas déjà exister
+                (<code>client_id</code> + <code>helloAssoPaymentId</code>).
+            </p>
+            <h3>3. Décision automatique / manuel</h3>
+            <ul>
+                <li>Si <code>paymentAutomaticEnabled</code> est désactivé → reste <code>Todo</code>, fin du traitement.</li>
+                <li>Si le paiement date de plus de 12h (<code>NUMBER_LATE_HOURS_ACCEPTED</code>) → <code>TooLate</code>, email d'alerte, pas de crédit auto.</li>
+                <li>Si HelloAsso l'indique encore <code>Waiting</code> → statut <code>Waiting</code>, email d'alerte.</li>
+                <li>Sinon → tentative de crédit immédiat.</li>
+            </ul>
+            <h3>4. Crédit Cyclos (<code>creditCyclosAccount</code>)</h3>
+            <ol>
+                <li>Recherche l'utilisateur Cyclos par l'email du payeur (<code>CyclosClient::findUserByEmail</code>).</li>
+                <li>Si introuvable, tente un email alternatif via un champ personnalisé de la commande HelloAsso (<code>HelloAssoClient::getAlternativeEmail</code>) et relance la recherche.</li>
+                <li>Détermine le type d'émission Cyclos à utiliser selon le groupe de l'utilisateur (<code>resolveEmissionType</code> — pro vs particulier). Un utilisateur dans un groupe non autorisé fait échouer le paiement.</li>
+                <li>Vérifie qu'un paiement portant la même description n'a pas déjà été crédité (anti-doublon, voir plus bas).</li>
+                <li>Exécute <code>POST system/payments</code> (ou <code>/preview</code> si les paiements Cyclos sont désactivés pour ce client).</li>
+            </ol>
+        </section>
+
+        <section id="helloasso" class="docs-section" data-docs-toc-target="section">
+            <h2>Intégration HelloAsso</h2>
+            <p>
+                <code>HelloAssoClient</code> encapsule l'authentification OAuth2
+                (<code>client_credentials</code>) et l'appel à l'API v5. Chaque appel est
+                paramétré par le <code>HelloAssoConfig</code> du client courant — aucune
+                configuration globale partagée entre clients.
+            </p>
+            <table class="docs-table">
+                <thead><tr><th>Méthode</th><th>Rôle</th></tr></thead>
+                <tbody>
+                    <tr><td>parseNotification()</td><td>Parsing pur (sans appel réseau) d'un corps de webhook — logique testée unitairement</td></tr>
+                    <tr><td>fetchPaymentsHistory()</td><td>Historique des paiements d'un formulaire sur N jours (rattrapage)</td></tr>
+                    <tr><td>getAlternativeEmail()</td><td>Cherche un email alternatif dans les champs personnalisés d'une commande</td></tr>
+                    <tr><td>getAccessToken() / disconnect()</td><td>Cycle de vie du jeton OAuth2 — un jeton par appel, invalidé en <code>finally</code></td></tr>
+                </tbody>
+            </table>
+            <div class="docs-note">
+                {{ icons.render('key') }}
+                <p>
+                    L'appel <code>oauth2/token</code> transmet <code>client_id</code>/<code>client_secret</code>
+                    et reçoit un jeton d'accès en retour — ni l'un ni l'autre n'est jamais écrit
+                    dans le journal d'appels API (voir <a href="#journal" data-docs-toc-target="link">Journal d'activité</a>),
+                    contrairement aux autres appels dont le corps est journalisé intégralement.
+                </p>
+            </div>
+        </section>
+
+        <section id="cyclos" class="docs-section" data-docs-toc-target="section">
+            <h2>Intégration Cyclos</h2>
+            <p>
+                <code>CyclosClient</code> authentifie chaque requête en Basic Auth
+                (<code>technicalUserId</code> + mot de passe déchiffré à la volée) via une seule
+                méthode privée <code>request()</code> — point de passage unique qui centralise
+                l'authentification, le timeout, et désormais la journalisation (voir
+                <a href="#journal" data-docs-toc-target="link">Journal d'activité</a>).
+            </p>
+            <table class="docs-table">
+                <thead><tr><th>Méthode</th><th>Endpoint Cyclos</th><th>Rôle</th></tr></thead>
+                <tbody>
+                    <tr><td>findUserByEmail()</td><td>GET users</td><td>Recherche un membre par mot-clé (email), retourne son id et le nom interne de son groupe</td></tr>
+                    <tr><td>resolveEmissionType()</td><td>—</td><td>Logique pure : compare le groupe de l'utilisateur à <code>groupProInternal</code>/<code>groupsPartInternal</code></td></tr>
+                    <tr><td>hasAlreadyCreditedPayment()</td><td>GET {email}/transactions</td><td>Anti-doublon — compare la description de la dernière transaction créditée</td></tr>
+                    <tr><td>performPayment()</td><td>POST system/payments(/preview)</td><td>Exécute (ou prévisualise) le virement système→utilisateur</td></tr>
+                </tbody>
+            </table>
+            <h3>Anti-doublon : une limite connue</h3>
+            <p>
+                <code>hasAlreadyCreditedPayment()</code> ne compare que la <strong>dernière</strong>
+                transaction créditée de l'utilisateur (<code>pageSize: 1, orderBy: dateDesc</code>),
+                pas tout son historique — hérité tel quel du code Java d'origine. Si l'utilisateur
+                a reçu un autre paiement entre-temps, cette vérification ne verra plus l'ancien
+                paiement et un double crédit devient possible en théorie. Le risque est atténué
+                par défaut car la fenêtre de rattrapage (<code>fetchNbDays</code>, 5 jours par
+                défaut) est plus courte que la rétention de purge (<code>PAYMENT_RETENTION_DAYS</code>,
+                7 jours par défaut) — un paiement purgé n'est normalement plus dans la fenêtre de
+                rattrapage. Voir <a href="#historique" data-docs-toc-target="link">Incidents résolus</a> pour le detail de
+                cette analyse.
+            </p>
+            <h3>Format du corps de paiement</h3>
+            <p>
+                Point d'attention direct issu d'un vrai incident (voir
+                <a href="#historique" data-docs-toc-target="link">Incidents résolus</a>) : l'API Cyclos identifie le
+                destinataire d'un paiement via le champ <code>subject</code> du corps JSON, pas
+                <code>to</code> (qui n'existe pas sur cet endpoint — <code>to</code> est un
+                paramètre de requête sur d'autres opérations comme <code>data-for-perform</code>,
+                ce qui prête à confusion).
+            </p>
+            <div class="docs-code">// CyclosClient::performPayment() — corps envoyé à POST system/payments
+[
+    'amount'      => (string) $amount,
+    'subject'     => $email,        // PAS 'to' — c'est le nom du champ attendu par l'API
+    'description' => $description,
+    'type'        => $emissionType, // ex. "emission.credit"
+]</div>
+        </section>
+
+        <section id="webhook" class="docs-section" data-docs-toc-target="section">
+            <h2>Webhook &amp; rattrapage</h2>
+            <p>
+                Deux voies d'ingestion complémentaires et indépendantes — c'est une source
+                fréquente d'incompréhension, donc explicite ici :
+            </p>
+            <ul>
+                <li>
+                    <strong>Webhook temps réel</strong> — <code>POST /webhook/helloasso/{clientSlug}</code>
+                    (<code>WebhookController</code>). Nécessite qu'un humain configure cette URL
+                    côté HelloAsso ("Intégrations et API" du formulaire). Sans ça, aucun crédit
+                    automatique en temps réel — mais voir le point suivant.
+                </li>
+                <li>
+                    <strong>Rattrapage périodique</strong> — <code>app:helloasso:fetch</code>,
+                    exécuté par le Scheduler toutes les minutes. Interroge directement l'historique
+                    HelloAsso via l'API (authentification OAuth2 avec les identifiants du client),
+                    <strong>complètement indépendant de la configuration du webhook</strong>. Un
+                    client peut donc voir ses paiements apparaître dans Cyllos sans jamais avoir
+                    configuré de webhook — c'est le rattrapage qui fait le travail. Les paiements
+                    ainsi récupérés par ce rattrapage planifié restent toujours <code>Todo</code> :
+                    c'est un filet de sécurité pour un webhook manqué, pas une deuxième voie de
+                    crédit automatique.
+                </li>
+                <li>
+                    <strong>Synchro manuelle</strong> — même commande sous-jacente
+                    (<code>PaymentProcessor::fetchMissingPayments()</code>), déclenchée par le
+                    bouton "Synchro HelloAsso" sur la fiche client. Contrairement au rattrapage
+                    planifié, chaque paiement nouvellement récupéré est ensuite passé dans la même
+                    décision de crédit automatique que le webhook (<code>$attemptAutomaticCredit
+                    = true</code>) : si <code>paymentAutomaticEnabled</code> est actif pour ce
+                    client, et que le paiement n'est ni trop élevé (<code>maxAmount</code>) ni trop
+                    ancien (<code>NUMBER_LATE_HOURS_ACCEPTED</code>), Cyllos tente immédiatement de
+                    le créditer sur Cyclos — exactement comme s'il venait d'arriver par webhook.
+                </li>
+            </ul>
+        </section>
+
+        <section id="scheduler" class="docs-section" data-docs-toc-target="section">
+            <h2>Tâches planifiées</h2>
+            <p>
+                Déclarées dans <code>src/Scheduler/AppSchedule.php</code> via le composant
+                Symfony Scheduler, qui s'appuie sur Messenger (transport Doctrine).
+            </p>
+            <div class="docs-code">#[AsSchedule('default')]
+class AppSchedule implements ScheduleProviderInterface
+{
+    public function getSchedule(): Schedule
+    {
+        return (new Schedule())
+            ->with(
+                RecurringMessage::cron('* * * * *', new RunCommandMessage('app:helloasso:fetch')),
+                RecurringMessage::cron('0 3 * * *', new RunCommandMessage('app:payments:purge')),
+            )
+            ->stateful($this->scheduleCache);
+    }
+}</div>
+            <div class="docs-note docs-note--warning">
+                {{ icons.render('sync') }}
+                <p>
+                    Déclarer un <code>Schedule</code> ne suffit pas à le faire tourner. Il faut un
+                    <strong>worker actif en continu</strong> qui consomme le transport
+                    <code>scheduler_default</code> :
+                </p>
+            </div>
+            <div class="docs-code">php bin/console messenger:consume scheduler_default</div>
+            <p>
+                Sans ce process (supervisé en production par systemd/Supervisor/conteneur dédié,
+                avec redémarrage automatique), aucune tâche planifiée ne se déclenche — ni le
+                rattrapage HelloAsso, ni la purge des paiements.
+            </p>
+        </section>
+
+        <section id="journal" class="docs-section" data-docs-toc-target="section">
+            <h2>Journal d'activité &amp; traçabilité API</h2>
+            <p>
+                Une seule entité, <code>ActivityLog</code>, sert deux usages historiquement
+                distincts, réunis pour garder un flux chronologique unique consultable sur
+                <code>/dev/journal</code> :
+            </p>
+            <h3>Audit des entités (<code>ActivityLogSubscriber</code>)</h3>
+            <p>
+                Écouteur d'événements Doctrine (<code>postPersist</code>/<code>postUpdate</code>/
+                <code>postRemove</code>/<code>postFlush</code>) qui trace les créations/
+                modifications/suppressions de <code>Client</code>, <code>Payment</code>,
+                <code>User</code>. Les nouvelles lignes ne peuvent pas être persistées depuis
+                l'intérieur d'un <code>postPersist</code>/<code>postUpdate</code> (flush en
+                cours) — elles sont mises en file d'attente et écrites dans <code>postFlush</code>,
+                avec un garde-fou anti-réentrance pour éviter une boucle infinie de flush. Les
+                champs sensibles (<code>password</code>, secrets chiffrés) sont explicitement
+                exclus de la liste des champs modifiés journalisée.
+            </p>
+            <h3>Traçabilité des appels API (<code>ApiCallLogger</code>)</h3>
+            <p>
+                Chaque appel sortant vers HelloAsso ou Cyclos est enregistré comme une ligne
+                <code>ActivityLog</code> avec <code>action = "api.helloasso"</code> ou
+                <code>"api.cyclos"</code>, la méthode/URL/code HTTP, et le corps de la requête et
+                de la réponse (tronqués à 4000 caractères). Sur <code>/dev/journal</code>, ces
+                lignes sont cliquables et ouvrent une fenêtre modale (contrôleur Stimulus
+                <code>apilog_controller.js</code>) affichant la requête et la réponse formatées.
+            </p>
+            <div class="docs-note docs-note--warning">
+                {{ icons.render('key') }}
+                <p>
+                    Règle stricte : aucun identifiant n'est jamais journalisé. Côté Cyclos, le
+                    Basic Auth ne fait jamais partie du corps JSON journalisé (il est transmis
+                    séparément par le client HTTP). Côté HelloAsso, l'appel <code>oauth2/token</code>
+                    journalise le statut HTTP mais remplace explicitement la requête (contient
+                    <code>client_secret</code>) et la réponse (contient le jeton d'accès) par des
+                    placeholders — voir <code>HelloAssoClient::getAccessToken()</code>.
+                </p>
+            </div>
+            <div class="docs-code">// ApiCallLogger::record() — signature
+public function record(
+    string $service,       // 'helloasso' | 'cyclos'
+    string $method,
+    string $url,
+    ?string $requestBody,  // déjà nettoyé par l'appelant — jamais de secret ici
+    int $statusCode,       // 0 = échec réseau (timeout, DNS, ...)
+    ?string $responseBody,
+    ?string $summary = null,
+): void</div>
+            <h3>Vidage du journal</h3>
+            <p>
+                <code>/dev/journal</code> propose un bouton "Vider le journal" — restreint à
+                <code>ROLE_DEVELOPER</code> et <code>ROLE_CEO</code> (un admin simple ne l'a pas,
+                même s'il peut consulter le journal). L'action exige de resaisir le mot de passe
+                du compte connecté (<code>ConfirmPasswordType</code>) avant d'exécuter
+                <code>ActivityLogRepository::deleteAll()</code> — une suppression en base
+                irréversible, sans corbeille ni export automatique préalable. À utiliser en toute
+                connaissance de cause : ce journal est la seule trace de nombreux événements
+                (appels API, changements sensibles), une fois vidé elle ne l'est plus.
+            </p>
+        </section>
+
+        <section id="notifications" class="docs-section" data-docs-toc-target="section">
+            <h2>Notifications par e-mail</h2>
+            <p>
+                Deux notifications distinctes envoyées à <code>Client::contactEmail</code> (jamais
+                à un compte utilisateur — voir <a href="#entite-client" data-docs-toc-target="link">Client</a>).
+                Les deux réglages sont exposés à deux endroits qui écrivent sur les mêmes colonnes
+                de <code>ClientSetting</code> : la fiche client côté admin (bloc "Réglages",
+                <code>ClientController</code>), et une carte dédiée sur <code>/settings</code>
+                visible uniquement des comptes <code>ROLE_CLIENT</code>
+                (<code>SettingsController::notifications()</code>, formulaire
+                <code>ClientNotificationPreferencesType</code> — volontairement plus restreint que
+                le formulaire admin, qui expose aussi les réglages Cyclos/mail technique
+                non pertinents pour un client) :
+            </p>
+            <ul>
+                <li><strong>Notif. paiement réussi</strong> (<code>ClientSetting::notifySuccessOnPayment</code>) — un e-mail à chaque crédit Cyclos réussi (manuel ou automatique).</li>
+                <li><strong>Notif. paiement en échec</strong> (<code>ClientSetting::notifyFailureOnPayment</code>) — un e-mail à chaque tentative de crédit échouée.</li>
+            </ul>
+            <p>
+                Les deux sont désactivables indépendamment et n'envoient rien si
+                <code>contactEmail</code> n'est pas renseigné, même si le réglage correspondant
+                est activé (<code>PaymentProcessor</code> vérifie les deux conditions). Le contenu
+                de l'e-mail d'échec reste volontairement générique côté client — pas de détail
+                d'erreur technique interne, qui reste consultable uniquement dans
+                <a href="#journal" data-docs-toc-target="link">le journal d'activité</a> côté admin.
+            </p>
+            <div class="docs-note">
+                {{ icons.render('inbox') }}
+                <p>
+                    Si <code>contactEmail</code> n'est pas renseigné, la carte sur
+                    <code>/settings</code> affiche un avertissement explicite au client plutôt que
+                    de le laisser cocher des cases qui n'auront silencieusement aucun effet.
+                </p>
+            </div>
+        </section>
+
+        <section id="mot-de-passe-oublie" class="docs-section" data-docs-toc-target="section">
+            <h2>Mot de passe oublié</h2>
+            <p>
+                Disponible uniquement pour les comptes clients (<code>ROLE_CLIENT</code>,
+                <code>User::client !== null</code>) — jamais pour les comptes admin, développeur
+                ou CEO, qui doivent passer par un développeur/CEO pour une réinitialisation
+                (cohérent avec <a href="#securite" data-docs-toc-target="link">le reste du modèle de sécurité</a>,
+                où les comptes à privilèges élevés ne s'auto-administrent jamais). Ce filtre est
+                appliqué côté serveur dans <code>PasswordResetController::findUserByToken()</code>,
+                pas seulement en cachant le lien côté admin.
+            </p>
+            <ul>
+                <li><code>GET/POST /mot-de-passe-oublie</code> — saisie de l'email. Le message de retour est <strong>toujours identique</strong> ("si un compte client existe avec cette adresse…"), que l'email corresponde ou non à un compte, pour ne pas permettre l'énumération des adresses inscrites.</li>
+                <li>Le jeton envoyé par e-mail est aléatoire (32 octets), et seul son hash SHA-256 est stocké en base (<code>User::resetTokenHash</code>) — la base ne contient jamais le jeton en clair. Il expire après 60 minutes (<code>resetTokenExpiresAt</code>).</li>
+                <li><code>GET/POST /reinitialiser-mot-de-passe/{token}</code> — vérifie le hash et l'expiration, puis permet de choisir un nouveau mot de passe.</li>
+            </ul>
+        </section>
+
+        <section id="double-auth" class="docs-section" data-docs-toc-target="section">
+            <h2>Double authentification (2FA)</h2>
+            <p>
+                Optionnelle, activable au choix par n'importe quel compte (admin, développeur,
+                CEO ou client) depuis <code>/settings</code>. Implémentation TOTP (RFC 6238)
+                maison — pas de librairie tierce — dans <code>TotpService</code> : secret de 20
+                octets encodé en Base32, code à 6 chiffres, période de 30 secondes, fenêtre de
+                tolérance de ±1 période pour absorber un léger décalage d'horloge.
+            </p>
+            <h3>Activation</h3>
+            <ol>
+                <li><code>POST /settings/2fa/activer</code> génère un secret et le garde en session (pas encore en base — tant que l'utilisateur n'a pas prouvé qu'il l'a bien enregistré dans son application).</li>
+                <li>L'utilisateur scanne/saisit le secret dans une application TOTP (Google Authenticator, Authy, 1Password…) et renvoie un code à 6 chiffres.</li>
+                <li><code>POST /settings/2fa/confirmer</code> vérifie ce code contre le secret en session ; seulement alors le secret est chiffré (<code>SecretEncryptor</code>, même mécanisme que les secrets HelloAsso/Cyclos) et persisté sur <code>User::totpSecretEncrypted</code>, et <code>totpEnabled</code> passe à <code>true</code>.</li>
+            </ol>
+            <h3>Connexion avec 2FA activée</h3>
+            <p>
+                <code>TotpLoginListener</code> écoute <code>LoginSuccessEvent</code> (priorité 100,
+                avant les autres écouteurs) : si le compte a la 2FA activée, il <strong>vide
+                immédiatement le token de sécurité</strong> (<code>TokenStorageInterface::setToken(null)</code>)
+                et redirige vers <code>/verification-2fa</code> plutôt que de laisser passer
+                l'authentification — l'utilisateur reste donc réellement non authentifié tant
+                qu'il n'a pas fourni un code valide, ce n'est pas une simple redirection cosmétique.
+                <code>TotpVerifyController</code> reconstruit un token de sécurité complet
+                (<code>UsernamePasswordToken</code>) seulement après vérification du code.
+            </p>
+            <h3>Désactivation</h3>
+            <p>
+                Nécessite de resaisir son mot de passe actuel (<code>ConfirmPasswordType</code>,
+                réutilisé aussi par <a href="#journal" data-docs-toc-target="link">le flush du journal</a>) —
+                empêche qu'une session laissée ouverte suffise à désactiver la 2FA.
+            </p>
+        </section>
+
+        <section id="recherche" class="docs-section" data-docs-toc-target="section">
+            <h2>Recherche globale</h2>
+            <p>
+                <code>SearchController</code> (<code>/admin/search?q=...</code>) interroge en
+                parallèle trois repositories — clients (nom/slug), paiements (prénom, nom, email,
+                la concaténation des deux dans les deux ordres, et l'ID HelloAsso si la requête
+                est numérique), comptes utilisateurs (email) — et affiche les résultats groupés
+                par catégorie. La recherche sur les paiements gère explicitement le cas d'un nom
+                complet ("Prénom Nom") qui ne correspondrait à aucun champ individuel.
+            </p>
+        </section>
+
+        <section id="ui-patterns" class="docs-section" data-docs-toc-target="section">
+            <h2>Composants d'interface</h2>
+            <h3>Pages "statiques" (sans défilement de page)</h3>
+            <p>
+                Sur desktop (≥ 901px), le châssis (sidebar, topbar) reste fixe et seule la zone
+                de contenu défile (<code>.content { overflow-y: auto }</code> à l'intérieur de
+                <code>.main</code>) — l'application se lit comme une suite d'écrans plutôt qu'une
+                longue page. Cette page de documentation est une exception assumée : le contenu
+                est long par nature, le défilement y est normal et attendu.
+            </p>
+            <h3>Tableaux à deux colonnes</h3>
+            <p>
+                Les listes longues et paginées (clients, équipe, journal d'activité) répartissent
+                les lignes de la page courante sur deux tableaux côte à côte plutôt qu'un seul
+                très long, via le filtre Twig <code>batch()</code> :
+            </p>
+            <div class="docs-code">{% verbatim %}{% set chunks = items|batch(14) %}
+<div class="table-columns {{ chunks|length < 2 ? 'table-columns--single' : '' }}">
+    {% for chunk in chunks %}
+        <table>...</table>
+    {% endfor %}
+</div>{% endverbatim %}</div>
+            <p>
+                <code>.table-columns--single</code> évite une grille à deux colonnes bancale
+                quand il n'y a qu'une poignée de résultats sur la dernière page. La page Paiements
+                est volontairement restée à une seule colonne (préférence produit) tout en gardant
+                <code>content--full</code> pour occuper toute la largeur disponible.
+            </p>
+            <h3>Modales de confirmation</h3>
+            <p>
+                Un seul contrôleur Stimulus global (<code>confirm_controller.js</code>) intercepte
+                <strong>tous</strong> les <code>submit</code> de formulaires portant un attribut
+                <code>data-confirm-message</code>, quel que soit le formulaire — pas de modale par
+                page à instancier manuellement. Le formulaire est re-soumis avec un indicateur
+                <code>data-confirmed=true</code> après confirmation, pour ne pas re-déclencher
+                l'interception.
+            </p>
+            <h3>Pagination</h3>
+            <p>
+                Chaque repository paginé retourne la même forme de tableau —
+                <code>{items, total, page, perPage, pageCount}</code> — consommée par un unique
+                composant partagé, <code>components/_pagination.html.twig</code>.
+            </p>
+            <h3>Filtre de statut (Paiements)</h3>
+            <p>
+                À côté du filtre par client, la page <code>/admin/payments</code> propose un
+                filtre par statut — Todo / Succès (regroupe <code>Success</code> et
+                <code>SuccessAuto</code>) / Échec — via un paramètre de requête <code>status</code>
+                consommé par <code>PaymentRepository::paginate()</code>
+                (<code>components/_status_filter_dropdown.html.twig</code>). Les deux filtres
+                (client, statut) et la pagination se combinent et se préservent mutuellement d'un
+                lien à l'autre.
+            </p>
+            <h3>Tri de l'équipe par rôle</h3>
+            <p>
+                <code>/admin/equipe</code> affiche les comptes triés par rôle plutôt que par ordre
+                d'insertion : CEO d'abord, puis développeurs, puis admins (départage par email à
+                rôle égal). Les rôles ne sont pas triables en SQL (colonne JSON), donc
+                <code>UserRepository::paginateGlobalTeam()</code> charge l'ensemble des comptes de
+                l'équipe globale sans <code>LIMIT</code>/<code>OFFSET</code>, trie en PHP
+                (<code>usort</code>), puis pagine par découpage de tableau — un compromis
+                raisonnable tant que l'équipe globale reste de taille modeste.
+            </p>
+        </section>
+
+        <section id="deploiement" class="docs-section" data-docs-toc-target="section">
+            <h2>Déploiement &amp; configuration</h2>
+            <table class="docs-table">
+                <thead><tr><th>Variable</th><th>Rôle</th></tr></thead>
+                <tbody>
+                    <tr><td>DATABASE_URL</td><td>Connexion MariaDB/MySQL</td></tr>
+                    <tr><td>APP_ENCRYPTION_KEY</td><td>Clé AES-256-GCM pour les secrets HelloAsso/Cyclos en base</td></tr>
+                    <tr><td>PAYMENT_RETENTION_DAYS</td><td>Délai de rétention avant purge des paiements crédités (7 jours par défaut)</td></tr>
+                    <tr><td>MAILER_DSN / MAILER_FROM</td><td>Envoi d'e-mails (alertes, notifications)</td></tr>
+                    <tr><td>GITHUB_UPSTREAM_REPO / _BRANCH / GITHUB_TOKEN</td><td>Comparaison de version sur <code>/dev/version</code></td></tr>
+                    <tr><td>APP_COMMIT_SHA</td><td>Commit courant si déployé sans dossier <code>.git</code> (artefact de build)</td></tr>
+                </tbody>
+            </table>
+            <p>Processus requis en continu au-delà du serveur web :</p>
+            <div class="docs-code">php bin/console messenger:consume scheduler_default   # rattrapage + purge</div>
+        </section>
+
+        <section id="mise-a-jour" class="docs-section" data-docs-toc-target="section">
+            <h2>Mise à jour depuis l'interface</h2>
+            <p>
+                <code>/dev/version</code> compare déjà le commit local au commit du dépôt GitHub
+                canonique (<code>VersionChecker</code>). Quand l'application n'est pas à jour, un
+                bouton "Déployer la mise à jour" apparaît — accessible à <code>ROLE_DEVELOPER</code>
+                et <code>ROLE_CEO</code> — qui déclenche <code>DeploymentRunner::run()</code> :
+            </p>
+            <ol>
+                <li><code>git pull --ff-only</code></li>
+                <li><code>composer install --no-interaction</code></li>
+                <li><code>doctrine:migrations:migrate --no-interaction</code></li>
+                <li><code>cache:clear --no-interaction</code></li>
+            </ol>
+            <p>
+                Chaque étape est exécutée via <code>Symfony\Component\Process\Process</code> ; à la
+                première étape en échec, les suivantes sont marquées "ignorées" plutôt
+                qu'exécutées à l'aveugle sur un état intermédiaire incohérent. Le résultat détaillé
+                (code de sortie et sortie de chaque étape) s'affiche directement sur la page —
+                aucune étape n'est silencieuse.
+            </p>
+            <div class="docs-note docs-note--warning">
+                {{ icons.render('sync') }}
+                <p>
+                    C'est une action réelle et potentiellement lourde sur le checkout de
+                    production : <code>git pull --ff-only</code> échoue proprement s'il y a des
+                    modifications locales non commitées ou une divergence d'historique (pas de
+                    <code>--force</code>), mais <code>composer install</code> et les migrations
+                    modifient effectivement l'état de l'application en place. Pas de rollback
+                    automatique en cas d'échec à mi-chemin — c'est un choix assumé de simplicité,
+                    à réévaluer si l'équipe grandit.
+                </p>
+            </div>
+        </section>
+
+        <section id="tests" class="docs-section" data-docs-toc-target="section">
+            <h2>Tests</h2>
+            <p>
+                <code>php bin/phpunit</code>. Deux catégories :
+            </p>
+            <ul>
+                <li><strong>Unitaires</strong> — logique pure sans I/O : <code>PaymentStatusTest</code>, <code>CyclosClientResolveEmissionTypeTest</code>, <code>HelloAssoClientParseNotificationTest</code>, <code>SecretEncryptorTest</code>.</li>
+                <li><strong>Fonctionnels</strong> — <code>WebhookControllerTest</code>, requête HTTP simulée de bout en bout sur le webhook (client HTTP factice pour Cyclos/HelloAsso, base de test dédiée).</li>
+            </ul>
+            <div class="docs-note docs-note--warning">
+                {{ icons.render('settings') }}
+                <p>
+                    Toute migration de schéma doit être appliquée à la fois sur la base de dev
+                    (<code>doctrine:migrations:migrate</code>) et sur la base de test
+                    (<code>doctrine:migrations:migrate --env=test</code>) — sinon les tests
+                    fonctionnels échouent avec des erreurs de colonne manquante alors que le code
+                    est correct.
+                </p>
+            </div>
+        </section>
+
+        <section id="historique" class="docs-section" data-docs-toc-target="section">
+            <h2>Incidents résolus (étude de cas)</h2>
+            <p>
+                Conservé volontairement : comprendre un bug déjà résolu évite de le réintroduire,
+                et documente pourquoi le code a la forme qu'il a.
+            </p>
+            <h3>Le champ "subject" contre "to" (paiement Cyclos)</h3>
+            <p>
+                Un test manuel via Swagger a révélé qu'un crédit échouait systématiquement avec
+                un 422 <code>{"propertyErrors":{"subject":["De / À est requis"]}}</code>, alors
+                même que le montant, le type d'émission et l'utilisateur étaient corrects. Le
+                corps envoyé par <code>CyclosClient::performPayment()</code> utilisait
+                <code>'to' => $email</code> — un nom de champ hérité d'un raisonnement par
+                analogie avec le paramètre de requête <code>to</code> de l'endpoint
+                <code>data-for-perform</code>, mais l'endpoint <code>POST system/payments</code>
+                attend en réalité <code>subject</code> dans le corps JSON. Un test manuel direct
+                dans Swagger avec <code>subject</code> à la place de <code>to</code> a confirmé le
+                diagnostic (200, paiement effectué) avant de corriger le code.
+            </p>
+            <h3>Confusion "ensemble de groupes" vs groupe réel (Cyclos)</h3>
+            <p>
+                Lors de la configuration d'un client de test, les groupes Cyclos affichés dans le
+                sélecteur ("A-Particuliers", "B-Prestataires") se sont révélés être des
+                <em>ensembles de groupes</em> (des catégories d'organisation), pas des groupes
+                auxquels un utilisateur appartient réellement — les vrais groupes membres étaient
+                les sous-entrées ("A4-Particulier SSALsa 30/45/60", "B2 Prestataire ..."). Utiliser
+                le nom interne d'un ensemble de groupes dans <code>groupProInternal</code>/
+                <code>groupsPartInternal</code> aurait fait échouer silencieusement toute
+                résolution de type d'émission, puisqu'aucun utilisateur n'appartient jamais
+                littéralement à l'ensemble, seulement à un de ses sous-groupes.
+            </p>
+            <h3>Nom de compte vs type de paiement (Cyclos)</h3>
+            <p>
+                Les noms internes des comptes système (<code>emission</code>, <code>emissionElefa</code>)
+                ressemblent fortement aux noms internes de types de paiement attendus par
+                <code>emissionProInternal</code>/<code>emissionPartInternal</code>, mais ce sont
+                deux notions Cyclos distinctes. La valeur correcte s'obtient via
+                <code>GET /{owner}/payments/data-for-perform</code> (avec <code>owner=system</code>
+                et un <code>to</code> valide), dont la réponse contient un tableau
+                <code>paymentTypes[]</code> — c'est le <code>internalName</code> d'une de ces
+                entrées (ex. <code>emission.credit</code>) qu'il faut utiliser, pas le nom d'un
+                compte.
+            </p>
+            <h3>Serveur de développement au code périmé</h3>
+            <p>
+                Après une modification de l'entité <code>ActivityLog</code> (nouvelles colonnes)
+                suivie d'une migration appliquée avec succès, les appels API continuaient à ne pas
+                être journalisés sans aucune erreur visible. Cause : le process
+                <code>php -S</code> local tournait déjà depuis un moment et n'avait pas rechargé
+                les métadonnées de classe modifiées — un simple <code>cache:clear</code> ne
+                suffit pas à faire relire le code source par un serveur de développement PHP déjà
+                démarré. Un redémarrage du process a résolu le problème.
+            </p>
+        </section>
+
+    </div>
+</div>
+{% endblock %}

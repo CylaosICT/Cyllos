@@ -2,10 +2,12 @@
 
 namespace App\Tests\Unit\Integration\Cyclos;
 
+use App\ActivityLog\ApiCallLogger;
 use App\Entity\CyclosConfig;
 use App\Integration\Cyclos\CyclosClient;
 use App\Integration\Cyclos\CyclosUser;
 use App\Security\SecretEncryptor;
+use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -21,6 +23,7 @@ class CyclosClientResolveEmissionTypeTest extends TestCase
             new MockHttpClient(),
             new SecretEncryptor(base64_encode(str_repeat('a', 32))),
             new NullLogger(),
+            new ApiCallLogger($this->createStub(EntityManagerInterface::class)),
         );
 
         $this->config = (new CyclosConfig())

@@ -2,12 +2,13 @@
 {% import 'components/icons.html.twig' as icons %}
 
 {% block title %}Paiements - Cyllos{% endblock %}
-{% block content_width %}content--wide{% endblock %}
+{% block content_width %}content--full{% endblock %}
 
 {% block breadcrumb %}{% if selectedClient %}<div class="topbar__crumb"><a href="{{ path('admin_client_show', {id: selectedClient.id}) }}">{{ selectedClient.name }}</a> / Paiements</div>{% endif %}{% endblock %}
 {% block page_title %}Paiements{% endblock %}
 {% block page_actions %}
-    {% include 'components/_client_filter_dropdown.html.twig' with {clients: clients, selectedClient: selectedClient} only %}
+    {% include 'components/_status_filter_dropdown.html.twig' with {selectedClient: selectedClient, statusFilter: statusFilter} only %}
+    {% include 'components/_client_filter_dropdown.html.twig' with {clients: clients, selectedClient: selectedClient, statusFilter: statusFilter} only %}
 {% endblock %}
 
 {% block body %}
@@ -43,7 +44,7 @@
                             <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €</td>
                             <td>{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
                             <td><span class="badge {{ payment.status.badgeClass }}">{{ payment.status.label }}</span></td>
-                            <td class="cell-muted">{{ payment.error }}</td>
+                            <td class="cell-muted cell-truncate" title="{{ payment.error }}">{{ payment.error }}</td>
                             <td class="actions-cell">
                                 <div class="actions">
                                     {% if payment.status.successful %}
@@ -65,6 +66,6 @@
                 </tbody>
             </table>
         </div>
-        {% include 'components/_pagination.html.twig' with {pagination: pagination, route: 'admin_payment_list', params: {client: selectedClient ? selectedClient.id : null}} only %}
+        {% include 'components/_pagination.html.twig' with {pagination: pagination, route: 'admin_payment_list', params: {client: selectedClient ? selectedClient.id : null, status: statusFilter|default(null)}} only %}
     {% endif %}
 {% endblock %}

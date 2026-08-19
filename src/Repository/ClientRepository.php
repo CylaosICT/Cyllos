@@ -30,6 +30,36 @@ class ClientRepository extends ServiceEntityRepository
     }
 
     /**
+     * @return array{items: Client[], total: int, page: int, perPage: int, pageCount: int}
+     */
+    public function paginate(int $page, int $perPage): array
+    {
+        $page = max(1, $page);
+
+        $qb = $this->createQueryBuilder('c')->orderBy('c.name', 'ASC');
+
+        $total = (int) (clone $qb)
+            ->select('COUNT(c.id)')
+            ->resetDQLPart('orderBy')
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        $items = $qb
+            ->setFirstResult(($page - 1) * $perPage)
+            ->setMaxResults($perPage)
+            ->getQuery()
+            ->getResult();
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'perPage' => $perPage,
+            'pageCount' => max(1, (int) ceil($total / $perPage)),
+        ];
+    }
+
+    /**
      * @return Client[]
      */
     public function search(string $query, int $limit = 8): array

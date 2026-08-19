@@ -34,11 +34,16 @@ class ClientSetting
     private string $mailRecipient = '';
 
     /**
-     * Whether to email the client (at mailRecipient) when a payment succeeds
-     * or fails, on top of the technical alerts already sent to that address.
+     * Whether to email the client (at Client::contactEmail, not mailRecipient)
+     * for each successful / failed automatic payment. Two independent toggles
+     * on purpose — a client may want to know about failures without being
+     * emailed for every single successful credit, or vice versa.
      */
     #[ORM\Column]
-    private bool $notifyAssociationOnPayment = false;
+    private bool $notifySuccessOnPayment = false;
+
+    #[ORM\Column]
+    private bool $notifyFailureOnPayment = false;
 
     public function getId(): ?int
     {
@@ -93,14 +98,26 @@ class ClientSetting
         return $this;
     }
 
-    public function isNotifyAssociationOnPayment(): bool
+    public function isNotifySuccessOnPayment(): bool
     {
-        return $this->notifyAssociationOnPayment;
+        return $this->notifySuccessOnPayment;
     }
 
-    public function setNotifyAssociationOnPayment(bool $notifyAssociationOnPayment): static
+    public function setNotifySuccessOnPayment(bool $notifySuccessOnPayment): static
     {
-        $this->notifyAssociationOnPayment = $notifyAssociationOnPayment;
+        $this->notifySuccessOnPayment = $notifySuccessOnPayment;
+
+        return $this;
+    }
+
+    public function isNotifyFailureOnPayment(): bool
+    {
+        return $this->notifyFailureOnPayment;
+    }
+
+    public function setNotifyFailureOnPayment(bool $notifyFailureOnPayment): static
+    {
+        $this->notifyFailureOnPayment = $notifyFailureOnPayment;
 
         return $this;
     }

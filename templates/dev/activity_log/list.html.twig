@@ -2,12 +2,28 @@
 {% import 'components/icons.html.twig' as icons %}
 
 {% block title %}Journal d'activité - Cyllos{% endblock %}
-{% block content_width %}content--wide{% endblock %}
+{% block content_width %}content--full{% endblock %}
 
 {% block page_title %}Journal d'activité{% endblock %}
 {% block page_actions %}
-    {% if page > 1 %}<a class="btn btn--secondary btn--sm" href="{{ path('dev_log_list', {page: page - 1}) }}">← Plus récent</a>{% endif %}
-    <a class="btn btn--secondary btn--sm" href="{{ path('dev_log_list', {page: page + 1}) }}">Plus ancien →</a>
+    {% if logs is not empty %}
+        <div data-controller="modal">
+            <button type="button" class="btn btn--danger" data-action="click->modal#open">{{ icons.render('trash') }} Vider le journal</button>
+            <div class="modal-backdrop" data-modal-target="backdrop" data-action="click->modal#closeOnBackdrop keydown@window->modal#closeOnEscape">
+                <div class="modal" role="alertdialog" aria-modal="true">
+                    <h3>Vider le journal d'activité</h3>
+                    <p>Cette action supprime <strong>toutes</strong> les entrées du journal, y compris l'historique des appels API. Elle est irréversible. Confirme avec ton mot de passe.</p>
+                    {{ form_start(flushForm, {action: path('dev_log_flush'), attr: {class: 'field-group'}}) }}
+                        {{ form_widget(flushForm) }}
+                        <div class="modal__actions">
+                            <button type="button" class="btn btn--secondary" data-action="modal#close">Annuler</button>
+                            <button type="submit" class="btn btn--danger">Vider le journal</button>
+                        </div>
+                    {{ form_end(flushForm) }}
+                </div>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}
 
 {% block body %}
@@ -18,29 +34,87 @@
             <p>Aucune activité enregistrée pour cette page.</p>
         </div>
     {% else %}
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Acteur</th>
-                        <th>Action</th>
-                        <th>Détail</th>
-                        <th>Contexte</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                        <tr>
-                            <td class="cell-muted">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
-                            <td>{{ log.actorEmail ?: 'Système' }}</td>
-                            <td><code>{{ log.action }}</code></td>
-                            <td>{{ log.summary }}</td>
-                            <td class="cell-muted">{{ log.context }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        {% set chunks = logs|batch(14) %}
+        <div class="table-columns {{ chunks|length < 2 ? 'table-columns--single' : '' }}" data-controller="apilog">
+            {% for chunk in chunks %}
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Acteur</th>
+                                <th>Action</th>
+                                <th>Détail</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in chunk %}
+                                {% if log.isApiCall %}
+                                    <tr class="is-clickable" data-action="click->apilog#open" data-apilog-payload='{{ {
+                                        service: log.apiService,
+                                        method: log.apiMethod,
+                                        url: log.apiUrl,
+                                        status: log.apiStatusCode,
+                                        request: log.apiRequestBody,
+                                        response: log.apiResponseBody,
+                                        summary: log.summary,
+                                        date: log.createdAt|date('d/m/Y H:i:s'),
+                                        actor: log.actorEmail ?: 'Système',
+                                    }|json_encode|e('html_attr') }}'>
+                                        <td class="cell-muted">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
+                                        <td>{{ log.actorEmail ?: 'Système' }}</td>
+                                        <td>
+                                            <code>{{ log.action }}</code>
+                                            <span class="badge {{ log.apiStatusCode >= 200 and log.apiStatusCode < 300 ? 'badge--success' : 'badge--fail' }}" style="margin-left:0.4rem;">{{ log.apiStatusCode ?: '—' }}</span>
+                                        </td>
+                                        <td class="cell-truncate">
+                                            {{ log.summary }}
+                                            {{ icons.render('external') }}
+                                        </td>
+                                    </tr>
+                                {% else %}
+                                    <tr>
+                                        <td class="cell-muted">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
+                                        <td>{{ log.actorEmail ?: 'Système' }}</td>
+                                        <td><code>{{ log.action }}</code></td>
+                                        <td class="cell-truncate" title="{{ log.summary }}{{ log.context ? ' — ' ~ log.context : '' }}">{{ log.summary }}</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endfor %}
+
+            <div class="modal-backdrop" data-apilog-target="modalBackdrop" data-action="click->apilog#closeOnBackdrop keydown@window->apilog#closeOnEscape">
+                <div class="modal modal--lg" role="dialog" aria-modal="true">
+                    <div class="api-log-modal__header">
+                        <div>
+                            <h3>Appel API <span class="cell-muted" data-apilog-target="service"></span></h3>
+                            <p class="text-sm text-muted" data-apilog-target="meta"></p>
+                        </div>
+                        <span class="badge" data-apilog-target="status"></span>
+                    </div>
+                    <div class="api-log-modal__row">
+                        <span class="cell-muted" data-apilog-target="methodUrl"></span>
+                    </div>
+                    <div class="api-log-modal__body">
+                        <div>
+                            <h4>Requête envoyée</h4>
+                            <pre class="api-log-modal__pre" data-apilog-target="request"></pre>
+                        </div>
+                        <div>
+                            <h4>Réponse reçue</h4>
+                            <pre class="api-log-modal__pre" data-apilog-target="response"></pre>
+                        </div>
+                    </div>
+                    <p class="text-sm text-muted">Les identifiants (mots de passe, secrets, jetons d'accès) ne sont jamais journalisés.</p>
+                    <div class="modal__actions">
+                        <button type="button" class="btn btn--secondary" data-action="apilog#close">Fermer</button>
+                    </div>
+                </div>
+            </div>
         </div>
+        {% include 'components/_pagination.html.twig' with {pagination: pagination, route: 'dev_log_list', params: {}} only %}
     {% endif %}
 {% endblock %}

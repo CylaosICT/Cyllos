@@ -2,67 +2,65 @@
 {% import 'components/icons.html.twig' as icons %}
 
 {% block title %}Réglages - Cyllos{% endblock %}
-{% block content_width %}content--wide{% endblock %}
+{% block content_width %}content--full{% endblock %}
 
 {% block page_title %}Réglages{% endblock %}
 
 {% block body %}
-    <div class="settings-grid">
-        <div class="settings-grid__column">
-            <div class="card">
-                <div class="card__header">
-                    <div>
-                        <h2>Apparence</h2>
-                        <p>Choisissez votre thème, il sera mémorisé pour votre compte.</p>
-                    </div>
-                </div>
-                <div class="field-group">
-                    <div class="theme-picker">
-                        <form method="post" action="{{ path('settings_theme') }}">
-                            <input type="hidden" name="theme" value="light">
-                            <button class="theme-option {{ app.user.theme == 'light' ? 'is-selected' : '' }}" type="submit">
-                                <span class="theme-option__swatch theme-option__swatch--light"></span>
-                                Clair
-                            </button>
-                        </form>
-                        <form method="post" action="{{ path('settings_theme') }}">
-                            <input type="hidden" name="theme" value="dark">
-                            <button class="theme-option {{ app.user.theme == 'dark' ? 'is-selected' : '' }}" type="submit">
-                                <span class="theme-option__swatch theme-option__swatch--dark"></span>
-                                Sombre
-                            </button>
-                        </form>
-                    </div>
+    <div class="settings-flow">
+        <div class="card settings-flow__item">
+            <div class="card__header">
+                <div>
+                    <h2>Apparence</h2>
+                    <p>Choisissez votre thème, il sera mémorisé pour votre compte.</p>
                 </div>
             </div>
-
-            <div class="card card--section">
-                <div class="card__header">
-                    <div>
-                        <h2>Adresse e-mail</h2>
-                        <p>Utilisée pour vous connecter à Cyllos.</p>
-                    </div>
+            <div class="field-group">
+                <div class="theme-picker">
+                    <form method="post" action="{{ path('settings_theme') }}">
+                        <input type="hidden" name="theme" value="light">
+                        <button class="theme-option {{ app.user.theme == 'light' ? 'is-selected' : '' }}" type="submit">
+                            <span class="theme-option__swatch theme-option__swatch--light"></span>
+                            Clair
+                        </button>
+                    </form>
+                    <form method="post" action="{{ path('settings_theme') }}">
+                        <input type="hidden" name="theme" value="dark">
+                        <button class="theme-option {{ app.user.theme == 'dark' ? 'is-selected' : '' }}" type="submit">
+                            <span class="theme-option__swatch theme-option__swatch--dark"></span>
+                            Sombre
+                        </button>
+                    </form>
                 </div>
-                {{ form_start(emailForm, {action: path('settings_email')}) }}
-                    <div class="field-group">
-                        {{ form_widget(emailForm) }}
-                    </div>
-                    <div class="form-footer">
-                        <span></span>
-                        <button class="btn" type="submit">Mettre à jour</button>
-                    </div>
-                {{ form_end(emailForm) }}
             </div>
         </div>
 
-        <div class="card card--fill">
+        <div class="card settings-flow__item">
+            <div class="card__header">
+                <div>
+                    <h2>Adresse e-mail</h2>
+                    <p>Utilisée pour vous connecter à Cyllos.</p>
+                </div>
+            </div>
+            {{ form_start(emailForm, {action: path('settings_email')}) }}
+                <div class="field-group">
+                    {{ form_widget(emailForm) }}
+                </div>
+                <div class="form-footer">
+                    <span></span>
+                    <button class="btn" type="submit">Mettre à jour</button>
+                </div>
+            {{ form_end(emailForm) }}
+        </div>
+
+        <div class="card settings-flow__item">
             <div class="card__header">
                 <div>
                     <h2>Mot de passe</h2>
                     <p>Choisissez un mot de passe d'au moins 8 caractères.</p>
                 </div>
             </div>
-            {{ form_start(passwordForm, {action: path('settings_password'), attr: {class: 'card--fill__form'}}) }}
+            {{ form_start(passwordForm, {action: path('settings_password')}) }}
                 <div class="field-group">
                     {{ form_widget(passwordForm) }}
                 </div>
@@ -72,5 +70,65 @@
                 </div>
             {{ form_end(passwordForm) }}
         </div>
+
+        <div class="card settings-flow__item">
+            <div class="card__header">
+                <div>
+                    <h2>Double authentification</h2>
+                    <p>Optionnelle — protège ton compte même si ton mot de passe fuite.</p>
+                </div>
+                {% if app.user.totpEnabled %}
+                    <span class="badge badge--success">{{ icons.render('check') }} Activée</span>
+                {% else %}
+                    <span class="badge badge--todo">Désactivée</span>
+                {% endif %}
+            </div>
+            <div class="field-group">
+                {% if app.user.totpEnabled %}
+                    <p class="text-sm text-muted" style="margin-bottom:1rem;">Un code de ton application d'authentification sera demandé à chaque connexion.</p>
+                    {{ form_start(confirmPasswordForm, {action: path('settings_totp_disable')}) }}
+                        {{ form_widget(confirmPasswordForm) }}
+                        <div class="form-footer">
+                            <span></span>
+                            <button class="btn btn--danger" type="submit">Désactiver</button>
+                        </div>
+                    {{ form_end(confirmPasswordForm) }}
+                {% else %}
+                    <p class="text-sm text-muted" style="margin-bottom:1rem;">Utilise une application comme Google Authenticator, Authy ou 1Password.</p>
+                    <form method="post" action="{{ path('settings_totp_start') }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('totp_start') }}">
+                        <button class="btn" type="submit">Activer la double authentification</button>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if notificationsForm is not null %}
+            <div class="card settings-flow__item">
+                <div class="card__header">
+                    <div>
+                        <h2>Notifications de paiement</h2>
+                        <p>Choisissez les e-mails que vous souhaitez recevoir.</p>
+                    </div>
+                </div>
+                <div class="field-group">
+                    {% if app.user.client.contactEmail is empty %}
+                        <div class="docs-note docs-note--warning" style="margin-bottom:1rem;">
+                            {{ icons.render('mail') }}
+                            <p>Aucune adresse de contact n'est renseignée pour {{ app.user.client.name }} — ces notifications ne seront envoyées nulle part tant qu'elle n'est pas définie. Contactez Cylaos pour la faire ajouter.</p>
+                        </div>
+                    {% else %}
+                        <p class="text-sm text-muted" style="margin-bottom:1rem;">Envoyées à {{ app.user.client.contactEmail }}.</p>
+                    {% endif %}
+                    {{ form_start(notificationsForm, {action: path('settings_notifications')}) }}
+                        {{ form_widget(notificationsForm) }}
+                        <div class="form-footer">
+                            <span></span>
+                            <button class="btn" type="submit">Mettre à jour</button>
+                        </div>
+                    {{ form_end(notificationsForm) }}
+                </div>
+            </div>
+        {% endif %}
     </div>
 {% endblock %}
