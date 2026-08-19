@@ -252,6 +252,9 @@ class ClientController extends AbstractController
         foreach ($this->userRepository->findByClient($client) as $user) {
             $this->entityManager->remove($user);
         }
+        foreach ($this->emailAliasRepository->findAllForClient($client) as $alias) {
+            $this->entityManager->remove($alias);
+        }
 
         $this->logoUploader->remove($client);
         $clientName = $client->getName();

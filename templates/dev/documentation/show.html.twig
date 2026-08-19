@@ -149,8 +149,23 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
                 <code>HelloAssoConfig</code>, <code>CyclosConfig</code>, <code>ClientSetting</code>.
                 Un client doit être désactivé avant de pouvoir être supprimé (garde-fou dans
                 <code>ClientController::delete()</code>) ; la suppression efface aussi ses
-                paiements, ses comptes utilisateurs et son logo uploadé.
+                paiements, ses comptes utilisateurs, ses règles <code>EmailAlias</code> et son logo
+                uploadé.
             </p>
+            <div class="docs-note docs-note--warning">
+                {{ icons.render('trash') }}
+                <p>
+                    Incident réel : <code>EmailAlias</code> a été ajouté sans mettre à jour
+                    <code>ClientController::delete()</code> pour le nettoyer avant de supprimer le
+                    client — la contrainte de clé étrangère (NOT NULL, sans cascade) faisait alors
+                    échouer la suppression en base dès qu'un client avait au moins une règle,
+                    remontant en 500 non intercepté. Retenir le principe pour toute future relation
+                    <code>ManyToOne</code> vers <code>Client</code> : elle doit systématiquement
+                    être ajoutée à la liste des <code>foreach (...->findAllForClient($client))</code>
+                    dans <code>delete()</code>, sans quoi la suppression casse silencieusement
+                    dès qu'une ligne existe.
+                </p>
+            </div>
             <p>
                 <code>contactEmail</code> est l'adresse de contact du client en tant
                 qu'organisation — distincte des emails des comptes utilisateurs
@@ -907,6 +922,26 @@ public function record(
                 les métadonnées de classe modifiées — un simple <code>cache:clear</code> ne
                 suffit pas à faire relire le code source par un serveur de développement PHP déjà
                 démarré. Un redémarrage du process a résolu le problème.
+            </p>
+            <h3>Suppression d'un client en 500 après l'ajout d'EmailAlias</h3>
+            <p>
+                Après l'ajout de la fonctionnalité de règles de correction d'e-mail
+                (<a href="#entite-client" data-docs-toc-target="link"><code>EmailAlias</code></a>), supprimer
+                un client possédant au moins une règle échouait avec une page d'erreur 500 générique
+                en production. Cause : <code>ClientController::delete()</code> nettoie
+                explicitement les entités liées à un client avant de le supprimer (paiements,
+                comptes utilisateurs) — un pattern nécessaire car Doctrine ne cascade pas les
+                suppressions par défaut et la contrainte de clé étrangère sur
+                <code>email_alias.client_id</code> est <code>NOT NULL</code> sans
+                <code>ON DELETE CASCADE</code>. La nouvelle relation <code>EmailAlias → Client</code>
+                a été ajoutée sans mettre à jour cette méthode de nettoyage, donc la suppression
+                du client échouait en base dès qu'une règle existait, remontant en exception non
+                interceptée. Corrigé en ajoutant la même boucle
+                <code>foreach ($this->emailAliasRepository->findAllForClient($client) as $alias)</code>
+                que pour les paiements et les comptes. Un test fonctionnel dédié
+                (<code>ClientDeletionTest</code>) verrouille désormais ce cas précis — vérifié en
+                le désactivant temporairement pour confirmer qu'il échoue bien sans le correctif,
+                avant de le remettre en place.
             </p>
         </section>
 
