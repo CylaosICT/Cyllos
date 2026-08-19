@@ -10,6 +10,7 @@ use App\Integration\HelloAsso\HelloAssoClient;
 use App\Integration\HelloAsso\HelloAssoFetchedPayment;
 use App\Integration\HelloAsso\HelloAssoNotificationPayload;
 use App\Notification\NotificationMailer;
+use App\Repository\EmailAliasRepository;
 use App\Repository\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
@@ -27,6 +28,7 @@ class PaymentProcessor
     public function __construct(
         private readonly EntityManagerInterface $entityManager,
         private readonly PaymentRepository $paymentRepository,
+        private readonly EmailAliasRepository $emailAliasRepository,
         private readonly HelloAssoClient $helloAssoClient,
         private readonly CyclosClient $cyclosClient,
         private readonly NotificationMailer $mailer,
@@ -263,6 +265,12 @@ class PaymentProcessor
         $setting = $client->getSetting();
 
         $email = $payment->getEmail();
+
+        $alias = $this->emailAliasRepository->findOneByClientAndSourceEmail($client, $payment->getPayerEmail());
+        if ($alias !== null) {
+            $email = $alias->getTargetEmail();
+        }
+
         $user = $this->cyclosClient->findUserByEmail($cyclosConfig, $email);
 
         if ($user === null) {

@@ -160,6 +160,49 @@
         {% endif %}
     </div>
 
+    <div class="card card--section">
+        <div class="card__header">
+            <div>
+                <h2>Correspondances d'e-mail</h2>
+                <p>Corrige automatiquement le crédit Cyclos quand l'e-mail HelloAsso du payeur ne correspond pas à son compte Cyclos.</p>
+            </div>
+            <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_new_email_alias', {id: client.id}) }}">{{ icons.render('plus') }} Nouvelle règle</a>
+        </div>
+        {% if emailAliases is empty %}
+            <div class="empty-state">
+                <div class="empty-state__icon">{{ icons.render('mail') }}</div>
+                <h3>Aucune règle</h3>
+                <p>Ajoutez-en une si un paiement échoue parce que l'e-mail HelloAsso du payeur diffère de son compte Cyclos.</p>
+            </div>
+        {% else %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>E-mail HelloAsso</th>
+                        <th>E-mail Cyclos utilisé</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alias in emailAliases %}
+                        <tr>
+                            <td class="cell-primary">{{ alias.sourceEmail }}</td>
+                            <td>{{ alias.targetEmail }}</td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    <form method="post" action="{{ path('admin_client_delete_email_alias', {id: client.id, aliasId: alias.id}) }}" data-confirm-title="Supprimer la règle" data-confirm-message="Supprimer la règle pour {{ alias.sourceEmail }} ?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('delete_email_alias_' ~ alias.id) }}">
+                                        <button class="btn btn--ghost btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
     <div class="card card--section card--danger">
         <div class="card__header">
             <div>

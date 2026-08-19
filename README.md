@@ -27,7 +27,13 @@ un slug unique et possède sa propre configuration :
   (`notifyFailureOnPayment`). Réglables depuis la fiche client côté admin,
   mais aussi en libre-service par le client lui-même depuis `/settings`
   (carte "Notifications de paiement", visible uniquement des comptes
-  `ROLE_CLIENT`).
+  `ROLE_CLIENT`) ;
+- `EmailAlias` (zéro ou plusieurs) : règles persistantes de correction
+  d'email — quand un payeur utilise sur HelloAsso une adresse différente de
+  celle de son compte Cyclos, une règle `sourceEmail → targetEmail` fait que
+  tous ses paiements futurs sont automatiquement crédités sur le bon compte,
+  sans qu'il faille corriger le problème à chaque fois. Gérées depuis la
+  fiche client (bloc "Correspondances d'e-mail").
 
 Les secrets (`clientSecret` HelloAsso, mot de passe Cyclos) sont chiffrés en
 base avec `APP_ENCRYPTION_KEY` via `SecretEncryptor` — jamais stockés en clair.
@@ -46,7 +52,9 @@ base avec `APP_ENCRYPTION_KEY` via `SecretEncryptor` — jamais stockés en clai
      d'alerte est envoyé, sans crédit automatique ;
    - sinon, `PaymentProcessor` tente immédiatement de créditer le compte
      Cyclos correspondant.
-3. **Crédit Cyclos** (`CyclosClient`) : recherche de l'utilisateur par email
+3. **Crédit Cyclos** (`CyclosClient`) : si une règle `EmailAlias` existe pour
+   ce client et cet email payeur (voir plus bas), l'email de remplacement est
+   utilisé directement ; sinon recherche de l'utilisateur par l'email payeur
    (avec repli sur un email alternatif récupéré via l'API HelloAsso si
    introuvable), détermination du type d'émission selon son groupe Cyclos,
    vérification anti-doublon (un paiement avec la même description n'a pas
@@ -72,7 +80,9 @@ d'erreur le cas échéant, visible dans les listes de paiements.
 
 - **`/admin`** (`ROLE_ADMIN`) : vue transverse sur tous les clients — gestion
   des clients (assistant de création en 4 étapes, config HelloAsso/Cyclos/
-  réglages), tous les paiements avec filtre par client, crédit/suppression
+  réglages), tous les paiements avec filtre par client (colonne "E-mail
+  HelloAsso" par paiement, avec indicateur si une règle `EmailAlias` existe
+  déjà et raccourci pour en créer une pré-remplie sinon), crédit/suppression
   manuels, synchro HelloAsso à la demande, recherche globale, et comptes
   utilisateurs par client (création, réinitialisation de mot de passe,
   activation/désactivation, suppression — un compte désactivé ne peut plus

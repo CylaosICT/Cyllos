@@ -5,13 +5,16 @@ namespace App\Tests\Unit\Payment;
 use App\Entity\Client;
 use App\Entity\ClientSetting;
 use App\Entity\CyclosConfig;
+use App\Entity\EmailAlias;
 use App\Entity\HelloAssoConfig;
+use App\Entity\Payment;
 use App\Entity\PaymentStatus;
 use App\Integration\Cyclos\CyclosClient;
 use App\Integration\HelloAsso\HelloAssoClient;
 use App\Integration\HelloAsso\HelloAssoFetchedPayment;
 use App\Notification\NotificationMailer;
 use App\Payment\PaymentProcessor;
+use App\Repository\EmailAliasRepository;
 use App\Repository\PaymentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
@@ -62,14 +65,21 @@ class PaymentProcessorTest extends TestCase
         HelloAssoClient $helloAssoClient,
         CyclosClient $cyclosClient,
         NotificationMailer $mailer,
+        ?EmailAliasRepository $emailAliasRepository = null,
     ): PaymentProcessor {
         $entityManager = $this->createStub(EntityManagerInterface::class);
         $paymentRepository = $this->createStub(PaymentRepository::class);
         $paymentRepository->method('findAllHelloAssoIdsForClient')->willReturn([]);
 
+        if ($emailAliasRepository === null) {
+            $emailAliasRepository = $this->createStub(EmailAliasRepository::class);
+            $emailAliasRepository->method('findOneByClientAndSourceEmail')->willReturn(null);
+        }
+
         return new PaymentProcessor(
             $entityManager,
             $paymentRepository,
+            $emailAliasRepository,
             $helloAssoClient,
             $cyclosClient,
             $mailer,
@@ -164,5 +174,74 @@ class PaymentProcessorTest extends TestCase
         $added = $processor->fetchMissingPayments($client, attemptAutomaticCredit: true);
 
         self::assertSame(2, $added);
+    }
+
+    public function testCreditUsesTheAliasedEmailInsteadOfThePayerEmailWhenARuleExists(): void
+    {
+        $client = $this->makeClient(automatic: true);
+
+        $payment = new Payment(
+            client: $client,
+            helloAssoPaymentId: 666,
+            paymentDate: new \DateTimeImmutable(),
+            amount: 20.0,
+            payerFirstName: 'Jean',
+            payerLastName: 'Dupont',
+            email: 'jean.helloasso@example.com',
+        );
+
+        $alias = (new EmailAlias())->setClient($client)
+            ->setSourceEmail('jean.helloasso@example.com')
+            ->setTargetEmail('jean.real-cyclos-account@example.com');
+
+        $emailAliasRepository = $this->createStub(EmailAliasRepository::class);
+        $emailAliasRepository->method('findOneByClientAndSourceEmail')->willReturn($alias);
+
+        $helloAssoClient = $this->createStub(HelloAssoClient::class);
+
+        $cyclosClient = $this->createMock(CyclosClient::class);
+        $cyclosClient->expects(self::once())->method('findUserByEmail')
+            ->with(self::anything(), 'jean.real-cyclos-account@example.com')
+            ->willReturn(null); // stop here — the assertion above is what this test cares about.
+
+        $mailer = $this->createStub(NotificationMailer::class);
+
+        $processor = $this->makeProcessor($helloAssoClient, $cyclosClient, $mailer, $emailAliasRepository);
+        $processor->creditManually($payment);
+    }
+
+    public function testAliasLookupUsesTheImmutablePayerEmailEvenIfEmailWasAlreadyOverwritten(): void
+    {
+        $client = $this->makeClient(automatic: true);
+
+        $payment = new Payment(
+            client: $client,
+            helloAssoPaymentId: 777,
+            paymentDate: new \DateTimeImmutable(),
+            amount: 20.0,
+            payerFirstName: 'Marie',
+            payerLastName: 'Curie',
+            email: 'marie.helloasso@example.com',
+        );
+        // Simulate a prior successful credit having already overwritten `email`
+        // (e.g. via the HelloAsso alternative-email fallback) — payerEmail must
+        // stay untouched and keep being the lookup key for the alias rule.
+        $payment->setEmail('marie.alternative@example.com');
+
+        $emailAliasRepository = $this->createMock(EmailAliasRepository::class);
+        $emailAliasRepository->expects(self::once())->method('findOneByClientAndSourceEmail')
+            ->with($client, 'marie.helloasso@example.com')
+            ->willReturn(null);
+
+        $helloAssoClient = $this->createStub(HelloAssoClient::class);
+        $helloAssoClient->method('getAlternativeEmail')->willReturn(null);
+
+        $cyclosClient = $this->createStub(CyclosClient::class);
+        $cyclosClient->method('findUserByEmail')->willReturn(null);
+
+        $mailer = $this->createStub(NotificationMailer::class);
+
+        $processor = $this->makeProcessor($helloAssoClient, $cyclosClient, $mailer, $emailAliasRepository);
+        $processor->creditManually($payment);
     }
 }

@@ -4,16 +4,19 @@ namespace App\Controller\Admin;
 
 use App\Client\ClientLogoUploader;
 use App\Entity\Client;
+use App\Entity\EmailAlias;
 use App\Entity\User;
 use App\Form\ClientInfoType;
 use App\Form\ClientSettingType;
 use App\Form\ClientUserType;
+use App\Form\EmailAliasType;
 use App\Form\ResetPasswordType;
 use App\Form\ClientWizardState;
 use App\Form\CyclosConfigType;
 use App\Form\HelloAssoConfigType;
 use App\Payment\PaymentProcessor;
 use App\Repository\ClientRepository;
+use App\Repository\EmailAliasRepository;
 use App\Repository\PaymentRepository;
 use App\Repository\UserRepository;
 use App\Security\SecretEncryptor;
@@ -44,6 +47,7 @@ class ClientController extends AbstractController
         private readonly UserRepository $userRepository,
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly PaymentRepository $paymentRepository,
+        private readonly EmailAliasRepository $emailAliasRepository,
     ) {
     }
 
@@ -67,7 +71,58 @@ class ClientController extends AbstractController
         return $this->render('admin/client/show.html.twig', [
             'client' => $client,
             'usersPagination' => $this->userRepository->paginateByClient($client, $page, self::USERS_PER_PAGE),
+            'emailAliases' => $this->emailAliasRepository->findAllForClient($client),
         ]);
+    }
+
+    #[Route(path: '/{id}/alias-email/new', requirements: ['id' => '\d+'], name: 'new_email_alias', methods: ['GET', 'POST'])]
+    public function newEmailAlias(Client $client, Request $request): Response
+    {
+        $alias = new EmailAlias();
+        $alias->setClient($client);
+
+        $prefillSourceEmail = $request->query->get('sourceEmail');
+        if (\is_string($prefillSourceEmail) && $prefillSourceEmail !== '') {
+            $alias->setSourceEmail($prefillSourceEmail);
+        }
+
+        $form = $this->createForm(EmailAliasType::class, $alias);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            if ($this->emailAliasRepository->findOneByClientAndSourceEmail($client, $alias->getSourceEmail()) !== null) {
+                $form->get('sourceEmail')->addError(new FormError('Une règle existe déjà pour cet e-mail HelloAsso.'));
+            } else {
+                $this->entityManager->persist($alias);
+                $this->entityManager->flush();
+
+                $this->addFlash('success', sprintf('Les paiements de "%s" seront désormais crédités sur "%s".', $alias->getSourceEmail(), $alias->getTargetEmail()));
+
+                return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
+            }
+        }
+
+        return $this->render('admin/client/new_email_alias.html.twig', [
+            'client' => $client,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route(path: '/{id}/alias-email/{aliasId}/supprimer', requirements: ['id' => '\d+', 'aliasId' => '\d+'], name: 'delete_email_alias', methods: ['POST'])]
+    public function deleteEmailAlias(Client $client, int $aliasId, Request $request): Response
+    {
+        $alias = $this->emailAliasRepository->find($aliasId);
+        if ($alias === null || $alias->getClient() !== $client) {
+            throw $this->createNotFoundException('Règle introuvable pour ce client.');
+        }
+
+        if ($this->isCsrfTokenValid('delete_email_alias_' . $alias->getId(), $request->request->get('_token'))) {
+            $this->entityManager->remove($alias);
+            $this->entityManager->flush();
+            $this->addFlash('success', sprintf('La règle pour "%s" a été supprimée.', $alias->getSourceEmail()));
+        }
+
+        return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
     }
 
     #[Route(path: '/{id}/utilisateurs/new', requirements: ['id' => '\d+'], name: 'new_user', methods: ['GET', 'POST'])]

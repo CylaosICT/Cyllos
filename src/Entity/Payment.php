@@ -42,8 +42,24 @@ class Payment
     #[ORM\Column(length: 255)]
     private string $payerLastName;
 
+    /**
+     * The email actually used for the Cyclos credit — starts out identical to
+     * payerEmail, but gets overwritten on a successful credit if an
+     * EmailAlias rule or the HelloAsso alternative-email fallback resolved a
+     * different one. Never use this to display "the HelloAsso email" once a
+     * payment may have been credited — use payerEmail for that.
+     */
     #[ORM\Column(length: 255)]
     private string $email;
+
+    /**
+     * The payer's email exactly as reported by HelloAsso, captured once at
+     * creation and never modified afterward — unlike email above, this
+     * stays reliable for display and for looking up an EmailAlias rule
+     * regardless of what happened during crediting.
+     */
+    #[ORM\Column(length: 255)]
+    private string $payerEmail;
 
     #[ORM\Column]
     private \DateTimeImmutable $insertionDate;
@@ -70,6 +86,7 @@ class Payment
         $this->payerFirstName = $payerFirstName;
         $this->payerLastName = $payerLastName;
         $this->email = $email;
+        $this->payerEmail = $email;
         $this->insertionDate = new \DateTimeImmutable();
         $this->status = PaymentStatus::Todo;
     }
@@ -119,6 +136,11 @@ class Payment
         $this->email = $email;
 
         return $this;
+    }
+
+    public function getPayerEmail(): string
+    {
+        return $this->payerEmail;
     }
 
     public function getInsertionDate(): \DateTimeImmutable
