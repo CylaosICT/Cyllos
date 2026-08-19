@@ -153,7 +153,7 @@ préalable.
 
 ## Prérequis
 
-- PHP 8.3+ avec les extensions `pdo_mysql` et `openssl`
+- PHP 8.4+ avec les extensions `pdo_mysql` et `openssl`
 - Composer
 - MySQL / MariaDB
 
@@ -244,6 +244,9 @@ Procédure pour un serveur **Debian 12 (Bookworm)** ou **Ubuntu 24.04 LTS**. Les
 commandes sont identiques sur les deux distributions sauf mention explicite
 d'une différence.
 
+> Pour une machine **Debian 13 (Trixie)** vierge (rien d'installé), voir le
+> guide dédié et détaillé : [docs/DEPLOIEMENT_DEBIAN13.md](docs/DEPLOIEMENT_DEBIAN13.md).
+
 ### 1. Paquets système
 
 MariaDB, Nginx, Git, Composer et les extensions PHP requises :
@@ -251,19 +254,29 @@ MariaDB, Nginx, Git, Composer et les extensions PHP requises :
 ```bash
 sudo apt update
 sudo apt install -y mariadb-server nginx git unzip curl \
-    php8.3-fpm php8.3-cli php8.3-mysql php8.3-mbstring php8.3-xml \
-    php8.3-curl php8.3-intl php8.3-opcache
+    php8.4-fpm php8.4-cli php8.4-mysql php8.4-mbstring php8.4-xml \
+    php8.4-curl php8.4-intl php8.4-opcache
 ```
 
-**Différence Debian/Ubuntu — dépôt PHP 8.3 :**
-- **Ubuntu 24.04** fournit PHP 8.3 nativement, la commande ci-dessus suffit.
-- **Debian 12** ne fournit que PHP 8.2 dans ses dépôts officiels. Ajouter le
-  dépôt tiers [Sury](https://packages.sury.org/) avant d'installer les
-  paquets `php8.3-*` :
+**Le paquet `composer.lock` de Cyllos exige PHP ≥ 8.4** (même si
+`composer.json` affiche `>=8.2`, c'est le fichier `.lock` — les versions
+exactes réellement installées — qui fait foi). Ni Debian 12, ni Ubuntu
+24.04 LTS ne fournissent PHP 8.4 dans leurs dépôts officiels par défaut : un
+dépôt tiers est nécessaire dans les deux cas.
+
+**Différence Debian/Ubuntu — dépôt PHP tiers :**
+- **Debian 12** : dépôt [Sury](https://packages.sury.org/) :
   ```bash
   sudo apt install -y apt-transport-https lsb-release ca-certificates
   curl -fsSL https://packages.sury.org/php/apt.gpg | sudo tee /etc/apt/trusted.gpg.d/php.gpg >/dev/null
   echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/php.list
+  sudo apt update
+  ```
+- **Ubuntu 24.04** : PPA `ondrej/php` (même mainteneur que Sury, packagé
+  différemment pour Ubuntu) :
+  ```bash
+  sudo apt install -y software-properties-common
+  sudo add-apt-repository -y ppa:ondrej/php
   sudo apt update
   ```
 
@@ -340,14 +353,14 @@ sudo -u cyllos php bin/console app:user:create admin@cylaos.example "un-mot-de-p
 
 ### 6. PHP-FPM
 
-Créer un pool dédié `/etc/php/8.3/fpm/pool.d/cyllos.conf` (le chemin
-`8.3` est identique sur les deux distributions une fois le paquet installé) :
+Créer un pool dédié `/etc/php/8.4/fpm/pool.d/cyllos.conf` (le chemin
+`8.4` est identique sur les deux distributions une fois le paquet installé) :
 
 ```ini
 [cyllos]
 user = cyllos
 group = cyllos
-listen = /run/php/php8.3-fpm-cyllos.sock
+listen = /run/php/php8.4-fpm-cyllos.sock
 listen.owner = www-data
 listen.group = www-data
 pm = dynamic
@@ -358,7 +371,7 @@ pm.max_spare_servers = 4
 ```
 
 ```bash
-sudo systemctl restart php8.3-fpm
+sudo systemctl restart php8.4-fpm
 ```
 
 ### 7. Nginx
@@ -376,7 +389,7 @@ server {
     }
 
     location ~ ^/index\.php(/|$) {
-        fastcgi_pass unix:/run/php/php8.3-fpm-cyllos.sock;
+        fastcgi_pass unix:/run/php/php8.4-fpm-cyllos.sock;
         fastcgi_split_path_info ^(.+\.php)(/.*)$;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
@@ -446,7 +459,7 @@ sudo -u cyllos git pull --ff-only
 sudo -u cyllos composer install --no-dev --optimize-autoloader --no-interaction
 sudo -u cyllos php bin/console doctrine:migrations:migrate --no-interaction --env=prod
 sudo -u cyllos php bin/console cache:clear --env=prod
-sudo systemctl restart php8.3-fpm cyllos-scheduler
+sudo systemctl restart php8.4-fpm cyllos-scheduler
 ```
 
 Ou via le bouton "Déployer la mise à jour" de `/dev/version`
