@@ -255,7 +255,7 @@ MariaDB, Nginx, Git, Composer et les extensions PHP requises :
 sudo apt update
 sudo apt install -y mariadb-server nginx git unzip curl \
     php8.4-fpm php8.4-cli php8.4-mysql php8.4-mbstring php8.4-xml \
-    php8.4-curl php8.4-intl php8.4-opcache
+    php8.4-curl php8.4-intl php8.4-opcache php8.4-zip
 ```
 
 **Le paquet `composer.lock` de Cyllos exige PHP ≥ 8.4** (même si

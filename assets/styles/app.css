@@ -573,6 +573,39 @@ code {
     margin: 0;
 }
 
+.version-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 420px) 1fr;
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.version-layout__status,
+.version-layout__result {
+    min-width: 0;
+}
+
+@media (max-width: 900px) {
+    .version-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.deploy-result__pre {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    background: var(--color-surface-sunken);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--color-text);
+    margin: 0;
+}
+
 @media (max-width: 720px) {
     .api-log-modal__body {
         grid-template-columns: 1fr;
