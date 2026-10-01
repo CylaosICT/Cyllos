@@ -202,6 +202,7 @@
                     <tr>
                         <th>E-mail</th>
                         <th>Statut</th>
+                        <th>Alimentation manuelle</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -214,6 +215,15 @@
                                     <span class="dot {{ user.active ? 'dot--active' : 'dot--inactive' }}"></span>
                                     {{ user.active ? 'Actif' : 'Inactif' }}
                                 </span>
+                            </td>
+                            <td>
+                                <form method="post" action="{{ path('admin_client_toggle_user_manual_payment_credit', {id: client.id, userId: user.id}) }}" data-confirm-title="{{ user.canMarkPaymentManualCredit ? 'Retirer' : 'Accorder' }} la permission" data-confirm-message="{{ user.canMarkPaymentManualCredit ? 'Retirer à' : 'Accorder à' }} {{ user.email }} la permission de marquer un paiement comme alimenté manuellement ?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('toggle_client_user_manual_credit_' ~ user.id) }}">
+                                    <button class="btn btn--secondary btn--sm" type="submit">
+                                        <span class="dot {{ user.canMarkPaymentManualCredit ? 'dot--active' : 'dot--inactive' }}"></span>
+                                        {{ user.canMarkPaymentManualCredit ? 'Autorisée' : 'Non autorisée' }}
+                                    </button>
+                                </form>
                             </td>
                             <td class="actions-cell">
                                 <div class="actions">

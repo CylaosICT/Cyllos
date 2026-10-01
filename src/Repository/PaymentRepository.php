@@ -202,8 +202,8 @@ class PaymentRepository extends ServiceEntityRepository
      */
     public function perClientStatsSince(\DateTimeImmutable $since): array
     {
-        $credited = [PaymentStatus::Success, PaymentStatus::SuccessAuto];
-        $toHandle = [PaymentStatus::Todo, PaymentStatus::TooHigh, PaymentStatus::TooLate, PaymentStatus::Waiting, PaymentStatus::PreviewOk];
+        $credited = PaymentStatus::credited();
+        $toHandle = PaymentStatus::toHandle();
 
         $rows = $this->getEntityManager()->createQueryBuilder()
             ->select(
@@ -341,7 +341,7 @@ class PaymentRepository extends ServiceEntityRepository
             ->andWhere('p.insertionDate < :date')
             ->andWhere('p.status IN (:statuses)')
             ->setParameter('date', $date)
-            ->setParameter('statuses', [PaymentStatus::Success, PaymentStatus::SuccessAuto])
+            ->setParameter('statuses', PaymentStatus::credited())
             ->getQuery()
             ->getScalarResult();
 

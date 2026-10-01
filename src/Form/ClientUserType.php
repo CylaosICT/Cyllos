@@ -3,6 +3,7 @@
 namespace App\Form;
 
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
@@ -29,6 +30,11 @@ class ClientUserType extends AbstractType
                 'second_options' => ['label' => 'Confirmation du mot de passe'],
                 'invalid_message' => 'Les deux mots de passe doivent être identiques.',
                 'constraints' => [new Assert\NotBlank(), new Assert\Length(min: 8, minMessage: 'Le mot de passe doit contenir au moins {{ limit }} caractères.')],
+            ])
+            ->add('manualPaymentCredit', CheckboxType::class, [
+                'label' => 'Alimentation manuelle des paiements',
+                'required' => false,
+                'help' => 'Permet de marquer un paiement comme alimenté manuellement (hors Cyllos) sans passer par le crédit automatique Cyclos.',
             ]);
     }
 

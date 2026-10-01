@@ -30,11 +30,17 @@ class PaymentController extends AbstractController
     ) {
     }
 
-    private const STATUS_FILTERS = [
-        'todo' => [PaymentStatus::Todo],
-        'success' => [PaymentStatus::Success, PaymentStatus::SuccessAuto],
-        'fail' => [PaymentStatus::Fail],
-    ];
+    /**
+     * @return array<string, PaymentStatus[]>
+     */
+    private static function statusFilters(): array
+    {
+        return [
+            'todo' => PaymentStatus::toHandle(),
+            'success' => PaymentStatus::credited(),
+            'fail' => [PaymentStatus::Fail],
+        ];
+    }
 
     #[Route(path: '', name: 'list', methods: ['GET'])]
     public function list(Request $request): Response
@@ -43,7 +49,8 @@ class PaymentController extends AbstractController
         $client = $clientId !== null ? $this->clientRepository->find($clientId) : null;
         $page = $request->query->getInt('page', 1);
         $statusFilter = $request->query->get('status');
-        $statuses = self::STATUS_FILTERS[$statusFilter] ?? [];
+        $statusFilters = self::statusFilters();
+        $statuses = $statusFilters[$statusFilter] ?? [];
 
         $pagination = $this->paymentRepository->paginate($client, $page, self::PER_PAGE, $statuses);
 
@@ -54,7 +61,7 @@ class PaymentController extends AbstractController
             'pagination' => $pagination,
             'clients' => $this->clientRepository->findBy([], ['name' => 'ASC']),
             'selectedClient' => $client,
-            'statusFilter' => \array_key_exists($statusFilter, self::STATUS_FILTERS) ? $statusFilter : null,
+            'statusFilter' => \array_key_exists($statusFilter, $statusFilters) ? $statusFilter : null,
             'aliasedEmails' => $this->emailAliasRepository->findSourceEmailSetForClients($clientIds),
         ]);
     }
@@ -67,6 +74,19 @@ class PaymentController extends AbstractController
             $this->addFlash($result->isSuccessful() ? 'success' : 'error', $result->isSuccessful()
                 ? 'Le paiement a été crédité avec succès.'
                 : 'Échec du crédit : ' . implode(', ', $result->errors));
+        }
+
+        return $this->redirectToRoute('admin_payment_list');
+    }
+
+    #[Route(path: '/{id}/mark-manual-credit', name: 'mark_manual_credit', methods: ['POST'])]
+    public function markManualCredit(Payment $payment, Request $request): Response
+    {
+        if ($this->isCsrfTokenValid('payment_action_' . $payment->getId(), $request->request->get('_token'))) {
+            $result = $this->paymentProcessor->markAsManuallyFunded($payment);
+            $this->addFlash($result->isSuccessful() ? 'success' : 'error', $result->isSuccessful()
+                ? 'Le paiement a été marqué comme alimenté manuellement.'
+                : 'Action impossible : ' . implode(', ', $result->errors));
         }
 
         return $this->redirectToRoute('admin_payment_list');

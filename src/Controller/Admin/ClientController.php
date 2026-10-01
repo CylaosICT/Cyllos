@@ -169,6 +169,7 @@ class ClientController extends AbstractController
                 $user = new User();
                 $user->setEmail($data['email']);
                 $user->setRoles([User::ROLE_CLIENT]);
+                $user->setManualPaymentCreditPermission((bool) $data['manualPaymentCredit']);
                 $user->setClient($client);
                 $user->setPassword($this->passwordHasher->hashPassword($user, $data['plainPassword']));
 
@@ -220,6 +221,25 @@ class ClientController extends AbstractController
             $user->setActive(!$user->isActive());
             $this->entityManager->flush();
             $this->addFlash('success', \sprintf('Le compte "%s" a été %s.', $user->getEmail(), $user->isActive() ? 'réactivé' : 'désactivé'));
+        }
+
+        return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
+    }
+
+    #[Route(path: '/{id}/utilisateurs/{userId}/alimentation-manuelle', requirements: ['id' => '\d+', 'userId' => '\d+'], name: 'toggle_user_manual_payment_credit', methods: ['POST'])]
+    public function toggleUserManualPaymentCredit(Client $client, int $userId, Request $request): Response
+    {
+        $user = $this->getClientUserOrNotFound($client, $userId);
+
+        if ($this->isCsrfTokenValid('toggle_client_user_manual_credit_' . $user->getId(), $request->request->get('_token'))) {
+            $hasPermission = $user->canMarkPaymentManualCredit();
+            $user->setManualPaymentCreditPermission(!$hasPermission);
+            $this->entityManager->flush();
+            $this->addFlash('success', \sprintf(
+                'La permission d\'alimentation manuelle a été %s pour "%s".',
+                $hasPermission ? 'retirée' : 'accordée',
+                $user->getEmail(),
+            ));
         }
 
         return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);

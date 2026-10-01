@@ -51,20 +51,20 @@ class DashboardController extends AbstractController
 
         $total = array_sum($counts);
         $failed = $sum(PaymentStatus::Fail);
-        $toHandle = $sum(PaymentStatus::Todo, PaymentStatus::TooHigh, PaymentStatus::TooLate, PaymentStatus::Waiting, PaymentStatus::PreviewOk);
+        $toHandle = $sum(...PaymentStatus::toHandle());
 
         return $this->render('app/dashboard.html.twig', [
             'client' => $client,
             'windowDays' => self::STATS_WINDOW_DAYS,
             'total' => $total,
-            'credited' => $sum(PaymentStatus::Success, PaymentStatus::SuccessAuto),
+            'credited' => $sum(...PaymentStatus::credited()),
             'failed' => $failed,
             'toHandle' => $toHandle,
             'failRate' => $total > 0 ? round($failed / $total * 100, 1) : 0.0,
             'amounts' => [
-                'credited' => $sumAmount(PaymentStatus::Success, PaymentStatus::SuccessAuto),
+                'credited' => $sumAmount(...PaymentStatus::credited()),
                 'failed' => $sumAmount(PaymentStatus::Fail),
-                'toHandle' => $sumAmount(PaymentStatus::Todo, PaymentStatus::TooHigh, PaymentStatus::TooLate, PaymentStatus::Waiting, PaymentStatus::PreviewOk),
+                'toHandle' => $sumAmount(...PaymentStatus::toHandle()),
             ],
             'recentPayments' => $this->paymentRepository->findRecentForClient($client, self::RECENT_PAYMENTS),
             'recentFailures' => $this->paymentRepository->findRecentByStatus(PaymentStatus::Fail, self::RECENT_FAILURES, $client),

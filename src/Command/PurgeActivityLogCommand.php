@@ -12,14 +12,14 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Bounds the activity_log table, which the /dev journal can still be wiped from
- * by hand. Two retentions: outbound API call traces (action "api.*", by far the
- * most rows — one per HelloAsso/Cyclos call, several per catch-up cycle) are kept
- * a short while; audit lines (entity changes, sign-ins) are kept much longer.
- * Scheduled daily by AppSchedule.
+ * by hand. Two retention knobs exist — outbound API call traces (action "api.*",
+ * by far the most rows — one per HelloAsso/Cyclos call, several per catch-up
+ * cycle) versus audit lines (entity changes, sign-ins) — but both default to the
+ * same one-month window. Scheduled daily by AppSchedule.
  */
 #[AsCommand(
     name: 'app:activity-log:purge',
-    description: 'Deletes old activity_log rows: API call traces after the short retention, everything after the long one.',
+    description: 'Deletes activity_log rows older than their retention (API call traces and audit lines, independently configurable).',
 )]
 class PurgeActivityLogCommand extends Command
 {
