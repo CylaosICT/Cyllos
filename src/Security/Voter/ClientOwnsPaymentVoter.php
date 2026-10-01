@@ -11,14 +11,18 @@ use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 /**
  * Ensures a ROLE_CLIENT user can only act on payments belonging to their own
  * client, preventing cross-tenant data access in the multi-tenant app.
+ * CLIENT_CAN_MARK_PAYMENT_MANUAL_CREDIT additionally requires the account to
+ * hold the manual-credit permission (see User::canMarkPaymentManualCredit()).
  *
- * @extends Voter<'CLIENT_OWNS_PAYMENT', Payment>
+ * @extends Voter<'CLIENT_OWNS_PAYMENT'|'CLIENT_CAN_MARK_PAYMENT_MANUAL_CREDIT', Payment>
  */
 class ClientOwnsPaymentVoter extends Voter
 {
+    private const ATTRIBUTES = ['CLIENT_OWNS_PAYMENT', 'CLIENT_CAN_MARK_PAYMENT_MANUAL_CREDIT'];
+
     protected function supports(string $attribute, mixed $subject): bool
     {
-        return $attribute === 'CLIENT_OWNS_PAYMENT' && $subject instanceof Payment;
+        return \in_array($attribute, self::ATTRIBUTES, true) && $subject instanceof Payment;
     }
 
     protected function voteOnAttribute(string $attribute, mixed $subject, TokenInterface $token, ?Vote $vote = null): bool
@@ -35,6 +39,12 @@ class ClientOwnsPaymentVoter extends Voter
         /** @var Payment $payment */
         $payment = $subject;
 
-        return $user->getClient() !== null && $user->getClient() === $payment->getClient();
+        $owns = $user->getClient() !== null && $user->getClient() === $payment->getClient();
+
+        if ($attribute === 'CLIENT_CAN_MARK_PAYMENT_MANUAL_CREDIT') {
+            return $owns && $user->canMarkPaymentManualCredit();
+        }
+
+        return $owns;
     }
 }

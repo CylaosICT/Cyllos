@@ -12,6 +12,7 @@ enum PaymentStatus: string
     case SuccessAuto = 'success_auto';
     case Fail = 'fail';
     case Waiting = 'waiting';
+    case ManualCredit = 'manual_credit';
 
     public function label(): string
     {
@@ -24,22 +25,45 @@ enum PaymentStatus: string
             self::SuccessAuto => 'Succès (automatique)',
             self::Fail => 'Échec',
             self::Waiting => 'En attente',
+            self::ManualCredit => 'Alimenté manuellement',
         };
     }
 
     public function isSuccessful(): bool
     {
-        return $this === self::Success || $this === self::SuccessAuto;
+        return $this === self::Success || $this === self::SuccessAuto || $this === self::ManualCredit;
     }
 
     public function badgeClass(): string
     {
         return match ($this) {
-            self::Success, self::SuccessAuto, self::PreviewOk => 'badge--success',
+            self::Success, self::SuccessAuto, self::PreviewOk, self::ManualCredit => 'badge--success',
             self::Fail, self::TooHigh => 'badge--fail',
             self::TooLate => 'badge--warning',
             self::Waiting => 'badge--waiting',
             self::Todo => 'badge--todo',
         };
+    }
+
+    /**
+     * Statuses meaning the payment is resolved and money has moved (or is
+     * recorded as having moved outside Cyllos) — never needs further action.
+     *
+     * @return PaymentStatus[]
+     */
+    public static function credited(): array
+    {
+        return [self::Success, self::SuccessAuto, self::ManualCredit];
+    }
+
+    /**
+     * Statuses meaning the payment is not resolved and needs attention —
+     * not yet credited, not a terminal failure.
+     *
+     * @return PaymentStatus[]
+     */
+    public static function toHandle(): array
+    {
+        return [self::Todo, self::TooHigh, self::TooLate, self::Waiting, self::PreviewOk];
     }
 }

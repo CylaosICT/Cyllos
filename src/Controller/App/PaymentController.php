@@ -57,6 +57,20 @@ class PaymentController extends AbstractController
         return $this->redirectToRoute('app_payment_list');
     }
 
+    #[Route(path: '/{id}/mark-manual-credit', name: 'mark_manual_credit', methods: ['POST'])]
+    #[IsGranted('CLIENT_CAN_MARK_PAYMENT_MANUAL_CREDIT', subject: 'payment')]
+    public function markManualCredit(Payment $payment, Request $request): Response
+    {
+        if ($this->isCsrfTokenValid('payment_action_' . $payment->getId(), $request->request->get('_token'))) {
+            $result = $this->paymentProcessor->markAsManuallyFunded($payment);
+            $this->addFlash($result->isSuccessful() ? 'success' : 'error', $result->isSuccessful()
+                ? 'Le paiement a été marqué comme alimenté manuellement.'
+                : 'Action impossible : ' . implode(', ', $result->errors));
+        }
+
+        return $this->redirectToRoute('app_payment_list');
+    }
+
     #[Route(path: '/{id}/delete', name: 'delete', methods: ['POST'])]
     #[IsGranted('CLIENT_OWNS_PAYMENT', subject: 'payment')]
     public function delete(Payment $payment, Request $request): Response

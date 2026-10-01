@@ -7,13 +7,14 @@ use PHPUnit\Framework\TestCase;
 
 class PaymentStatusTest extends TestCase
 {
-    public function testOnlySuccessAndSuccessAutoAreConsideredSuccessful(): void
+    public function testOnlyCreditedStatusesAreConsideredSuccessful(): void
     {
-        self::assertTrue(PaymentStatus::Success->isSuccessful());
-        self::assertTrue(PaymentStatus::SuccessAuto->isSuccessful());
+        foreach (PaymentStatus::credited() as $status) {
+            self::assertTrue($status->isSuccessful(), $status->name . ' should be considered successful');
+        }
 
         foreach (PaymentStatus::cases() as $status) {
-            if ($status === PaymentStatus::Success || $status === PaymentStatus::SuccessAuto) {
+            if (\in_array($status, PaymentStatus::credited(), true)) {
                 continue;
             }
             self::assertFalse($status->isSuccessful(), $status->name . ' should not be considered successful');

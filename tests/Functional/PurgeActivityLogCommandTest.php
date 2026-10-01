@@ -10,8 +10,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\Console\Tester\CommandTester;
 
 /**
- * app:activity-log:purge keeps the table bounded: API call traces expire on the
- * short retention, audit lines only on the long one, recent rows stay.
+ * app:activity-log:purge keeps the table bounded: everything (API call traces
+ * and audit lines alike) expires past the retention, recent rows stay.
  */
 class PurgeActivityLogCommandTest extends KernelTestCase
 {
@@ -40,12 +40,12 @@ class PurgeActivityLogCommandTest extends KernelTestCase
         return $log->getId();
     }
 
-    public function testPurgesApiTracesFastAndAuditLinesSlowly(): void
+    public function testPurgesApiTracesAndAuditLinesPastOneMonth(): void
     {
-        $oldApi = $this->persistLogAged('api.helloasso', '-30 days');      // > 14d  -> deleted
-        $recentApi = $this->persistLogAged('api.cyclos', '-2 days');        // < 14d  -> kept
-        $midAudit = $this->persistLogAged('client.update', '-30 days');     // > 14d but not api.* and < 365d -> kept
-        $oldAudit = $this->persistLogAged('user.login', '-400 days');       // > 365d -> deleted
+        $oldApi = $this->persistLogAged('api.helloasso', '-40 days');       // > 30d -> deleted
+        $recentApi = $this->persistLogAged('api.cyclos', '-2 days');        // < 30d -> kept
+        $recentAudit = $this->persistLogAged('client.update', '-10 days');  // < 30d -> kept
+        $oldAudit = $this->persistLogAged('user.login', '-40 days');        // > 30d -> deleted
 
         $command = (new Application(self::$kernel))->find('app:activity-log:purge');
         $exitCode = (new CommandTester($command))->execute([]);
@@ -54,7 +54,7 @@ class PurgeActivityLogCommandTest extends KernelTestCase
 
         $remaining = array_map(static fn (ActivityLog $l) => $l->getId(), $this->repository->findRecent(50));
         sort($remaining);
-        $expected = [$recentApi, $midAudit];
+        $expected = [$recentApi, $recentAudit];
         sort($expected);
 
         self::assertSame($expected, $remaining);

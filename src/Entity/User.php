@@ -16,6 +16,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public const ROLE_DEVELOPER = 'ROLE_DEVELOPER';
     public const ROLE_CEO = 'ROLE_CEO';
 
+    /**
+     * Grants a ROLE_CLIENT account the ability to mark a payment as funded
+     * manually (outside Cyllos) instead of crediting it through Cyclos — set
+     * per client-user account, since a client doesn't always want every
+     * member of their team to be able to do this. ROLE_ADMIN accounts can
+     * always do it regardless of this role (see canMarkPaymentManualCredit()).
+     */
+    public const ROLE_MANUAL_PAYMENT_CREDIT = 'ROLE_MANUAL_PAYMENT_CREDIT';
+
     public const THEME_LIGHT = 'light';
     public const THEME_DARK = 'dark';
 
@@ -155,6 +164,20 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isCeo(): bool
     {
         return \in_array(self::ROLE_CEO, $this->roles, true);
+    }
+
+    public function canMarkPaymentManualCredit(): bool
+    {
+        return $this->isAdmin() || \in_array(self::ROLE_MANUAL_PAYMENT_CREDIT, $this->roles, true);
+    }
+
+    public function setManualPaymentCreditPermission(bool $granted): static
+    {
+        $this->roles = $granted
+            ? array_values(array_unique([...$this->roles, self::ROLE_MANUAL_PAYMENT_CREDIT]))
+            : array_values(array_diff($this->roles, [self::ROLE_MANUAL_PAYMENT_CREDIT]));
+
+        return $this;
     }
 
     public function isActive(): bool

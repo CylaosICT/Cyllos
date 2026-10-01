@@ -285,6 +285,25 @@ class PaymentProcessor
         return $result;
     }
 
+    /**
+     * Marks a payment as funded manually outside Cyllos (e.g. credited by hand
+     * directly in Cyclos for technical reasons) instead of crediting it via the
+     * Cyclos API. Idempotent in the same sense as creditCyclosAccount(): a
+     * payment already credited (by any means) is left untouched.
+     */
+    public function markAsManuallyFunded(Payment $payment): PaymentProcessingResult
+    {
+        if ($payment->getStatus()->isSuccessful()) {
+            return new PaymentProcessingResult($payment->getStatus(), ['Paiement déjà effectué dans Cyclos']);
+        }
+
+        $payment->setStatus(PaymentStatus::ManualCredit);
+        $payment->setError(null);
+        $this->entityManager->flush();
+
+        return new PaymentProcessingResult(PaymentStatus::ManualCredit);
+    }
+
     private function creditCyclosAccount(Client $client, Payment $payment): PaymentProcessingResult
     {
         if ($payment->getStatus()->isSuccessful()) {

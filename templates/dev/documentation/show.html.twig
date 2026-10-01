@@ -980,7 +980,7 @@ public function record(
                     <tr><td>APP_ENCRYPTION_KEY</td><td>Clé AES-256-GCM (primaire) pour les secrets HelloAsso/Cyclos en base</td></tr>
                     <tr><td>APP_ENCRYPTION_KEYS_LEGACY</td><td>Clés précédentes (virgules), déchiffrement seul, le temps d'une rotation — cf. <code>app:secrets:reencrypt</code></td></tr>
                     <tr><td>PAYMENT_RETENTION_DAYS</td><td>Délai de rétention avant purge des paiements crédités (7 jours par défaut)</td></tr>
-                    <tr><td>ACTIVITY_LOG_API_RETENTION_DAYS / ACTIVITY_LOG_RETENTION_DAYS</td><td>Rétention du journal : traces d'appels API (14 j) et lignes d'audit (365 j) — <code>app:activity-log:purge</code></td></tr>
+                    <tr><td>ACTIVITY_LOG_API_RETENTION_DAYS / ACTIVITY_LOG_RETENTION_DAYS</td><td>Rétention du journal : traces d'appels API et lignes d'audit, 30 j par défaut — <code>app:activity-log:purge</code></td></tr>
                     <tr><td>MESSENGER_TRANSPORT_DSN</td><td>Transport de la file <code>async</code> (Doctrine par défaut)</td></tr>
                     <tr><td>MAILER_DSN / MAILER_FROM</td><td>Envoi d'e-mails (alertes, notifications)</td></tr>
                     <tr><td>GITHUB_UPSTREAM_REPO / _BRANCH / GITHUB_TOKEN</td><td>Comparaison de version sur <code>/dev/version</code></td></tr>

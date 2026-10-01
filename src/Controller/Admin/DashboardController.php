@@ -43,9 +43,9 @@ class DashboardController extends AbstractController
         );
 
         $total = array_sum($counts);
-        $credited = $sum(PaymentStatus::Success, PaymentStatus::SuccessAuto);
+        $credited = $sum(...PaymentStatus::credited());
         $failed = $sum(PaymentStatus::Fail);
-        $toHandle = $sum(PaymentStatus::Todo, PaymentStatus::TooHigh, PaymentStatus::TooLate, PaymentStatus::Waiting, PaymentStatus::PreviewOk);
+        $toHandle = $sum(...PaymentStatus::toHandle());
 
         // Ordered breakdown for the distribution bar (only non-zero slices).
         $breakdown = [];
@@ -63,9 +63,9 @@ class DashboardController extends AbstractController
             'toHandle' => $toHandle,
             'failRate' => $total > 0 ? round($failed / $total * 100, 1) : 0.0,
             'amounts' => [
-                'credited' => $sumAmount(PaymentStatus::Success, PaymentStatus::SuccessAuto),
+                'credited' => $sumAmount(...PaymentStatus::credited()),
                 'failed' => $sumAmount(PaymentStatus::Fail),
-                'toHandle' => $sumAmount(PaymentStatus::Todo, PaymentStatus::TooHigh, PaymentStatus::TooLate, PaymentStatus::Waiting, PaymentStatus::PreviewOk),
+                'toHandle' => $sumAmount(...PaymentStatus::toHandle()),
             ],
             'breakdown' => $breakdown,
             'perClient' => $this->buildPerClientRows($since),

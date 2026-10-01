@@ -63,6 +63,12 @@
                                             <input type="hidden" name="_token" value="{{ csrf_token('payment_action_' ~ payment.id) }}">
                                             <button class="btn btn--secondary btn--icon" type="submit" title="Créditer">{{ icons.render('send') }}</button>
                                         </form>
+                                        {% if app.user.canMarkPaymentManualCredit %}
+                                            <form method="post" action="{{ path('app_payment_mark_manual_credit', {id: payment.id}) }}" data-confirm-title="Marquer comme alimenté manuellement" data-confirm-message="Le paiement sera marqué comme alimenté dans Cyclos sans que Cyllos n'effectue de crédit. À utiliser seulement si l'alimentation a été faite par un autre moyen." data-confirm-confirm-label="Marquer comme alimenté">
+                                                <input type="hidden" name="_token" value="{{ csrf_token('payment_action_' ~ payment.id) }}">
+                                                <button class="btn btn--secondary btn--icon" type="submit" title="Marquer comme alimenté manuellement">{{ icons.render('check') }}</button>
+                                            </form>
+                                        {% endif %}
                                     {% endif %}
                                     {% if not hasAlias %}
                                         <a class="btn btn--secondary btn--icon" href="{{ path('app_email_alias_new', {sourceEmail: payment.payerEmail}) }}" title="Créer une règle de correction pour cet e-mail">{{ icons.render('rule') }}</a>
