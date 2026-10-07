@@ -121,8 +121,10 @@ class ClientRepository extends ServiceEntityRepository
     public function search(string $query, int $limit = 8): array
     {
         return $this->createQueryBuilder('c')
-            ->andWhere('c.name LIKE :q OR c.slug LIKE :q')
+            ->leftJoin('c.helloAssoConfigs', 'hac')
+            ->andWhere('c.name LIKE :q OR c.slug LIKE :q OR hac.label LIKE :q OR hac.formSlug LIKE :q')
             ->setParameter('q', '%' . $query . '%')
+            ->groupBy('c.id')
             ->orderBy('c.name', 'ASC')
             ->setMaxResults($limit)
             ->getQuery()

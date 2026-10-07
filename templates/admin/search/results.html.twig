@@ -11,9 +11,9 @@
         <div class="empty-state">
             <div class="empty-state__icon">{{ icons.render('inbox') }}</div>
             <h3>Tapez une recherche</h3>
-            <p>Client, paiement (nom, e-mail, id), ou compte utilisateur.</p>
+            <p>Client, paiement (nom, e-mail, id, formulaire), redirection d'e-mail, compte utilisateur ou journal d'activité.</p>
         </div>
-    {% elseif clients is empty and payments is empty and users is empty %}
+    {% elseif clients is empty and payments is empty and users is empty and emailAliases is empty and logs is empty %}
         <div class="empty-state">
             <div class="empty-state__icon">{{ icons.render('inbox') }}</div>
             <h3>Aucun résultat</h3>
@@ -49,11 +49,47 @@
                         {% for payment in payments %}
                             <tr>
                                 <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
+                                <td class="cell-muted">{{ payment.helloAssoConfig.label }}</td>
                                 <td class="cell-primary">{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
                                 <td>{{ payment.email }}</td>
                                 <td>{{ payment.amount|number_format(2, ',', ' ') }} €</td>
                                 <td><span class="badge {{ payment.status.badgeClass }}">{{ payment.status.label }}</span></td>
                                 <td><a href="{{ path('admin_payment_list', {client: payment.client.id}) }}">{{ payment.client.name }}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if emailAliases is not empty %}
+            <div class="card card--section">
+                <div class="card__header"><h2>Redirections e-mail</h2></div>
+                <table>
+                    <tbody>
+                        {% for alias in emailAliases %}
+                            <tr>
+                                <td class="cell-primary">{{ alias.sourceEmail }}</td>
+                                <td>→ {{ alias.targetEmail }}</td>
+                                <td><a href="{{ path('admin_email_alias_list', {client: alias.client.id}) }}">{{ alias.client.name }}</a></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+
+        {% if logs is not empty %}
+            <div class="card card--section">
+                <div class="card__header"><h2>Journal d'activité</h2></div>
+                <table>
+                    <tbody>
+                        {% for log in logs %}
+                            <tr>
+                                <td class="cell-muted">{{ log.createdAt|date('d/m/Y H:i:s') }}</td>
+                                <td>{{ log.actorEmail ?: 'Système' }}</td>
+                                <td><code>{{ log.action }}</code></td>
+                                <td class="cell-truncate" title="{{ log.summary }}">{{ log.summary }}</td>
                             </tr>
                         {% endfor %}
                     </tbody>

@@ -130,4 +130,22 @@ class ActivityLogRepository extends ServiceEntityRepository
             'pageCount' => max(1, (int) ceil($total / $perPage)),
         ];
     }
+
+    /**
+     * Free-text search over the audit trail (actor, action, summary, context,
+     * IP, API URL). Raw API-call traces are searched too, but their bodies are
+     * not, to keep the query cheap.
+     *
+     * @return ActivityLog[]
+     */
+    public function search(string $query, int $limit = 8): array
+    {
+        return $this->createQueryBuilder('l')
+            ->andWhere('l.actorEmail LIKE :q OR l.action LIKE :q OR l.summary LIKE :q OR l.context LIKE :q OR l.ipAddress LIKE :q OR l.apiUrl LIKE :q')
+            ->setParameter('q', '%' . $query . '%')
+            ->orderBy('l.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }

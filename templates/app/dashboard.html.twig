@@ -48,6 +48,7 @@
                     <thead>
                         <tr>
                             <th>Date</th>
+                            <th>Formulaire</th>
                             <th>Payeur</th>
                             <th style="text-align: right;">Montant</th>
                             <th>Statut</th>
@@ -57,6 +58,7 @@
                         {% for payment in recentPayments %}
                             <tr>
                                 <td class="cell-muted">{{ payment.paymentDate|date('d/m/Y H:i') }}</td>
+                                <td class="cell-muted">{{ payment.helloAssoConfig.label }}</td>
                                 <td>{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
                                 <td class="cell-primary" style="text-align: right;">{{ payment.amount|number_format(2, ',', ' ') }} €</td>
                                 <td><span class="badge {{ payment.status.badgeClass }}">{{ payment.status.label }}</span></td>
@@ -82,7 +84,7 @@
                             <div class="kv-row">
                                 <dt>
                                     {{ payment.payerFirstName }} {{ payment.payerLastName }}
-                                    <span class="text-muted">· {{ payment.amount|number_format(2, ',', ' ') }} € · {{ payment.insertionDate|date('d/m H:i') }}</span>
+                                    <span class="text-muted">· {{ payment.helloAssoConfig.label }} · {{ payment.amount|number_format(2, ',', ' ') }} € · {{ payment.insertionDate|date('d/m H:i') }}</span>
                                 </dt>
                                 <dd>{{ payment.error ?: '—' }}</dd>
                             </div>
