@@ -1,4 +1,5 @@
 {% import 'components/icons.html.twig' as icons %}
+{% set listRoute = route|default('admin_payment_list') %}
 <div class="dropdown dropdown--filter" data-controller="dropdown" data-action="click@window->dropdown#closeOnClickOutside keydown@window->dropdown#closeOnEscape">
     <button type="button" class="dropdown__trigger" data-dropdown-target="trigger" data-action="dropdown#toggle" aria-haspopup="true" aria-expanded="false">
         {% if selectedClient %}
@@ -8,10 +9,10 @@
         {{ icons.render('chevron-right', 'style="transform:rotate(90deg)"') }}
     </button>
     <div class="dropdown__menu" data-dropdown-target="menu">
-        <a class="dropdown__item {{ selectedClient is null ? 'is-selected' : '' }}" href="{{ path('admin_payment_list', {status: statusFilter|default(null)}) }}">Tous les clients</a>
+        <a class="dropdown__item {{ selectedClient is null ? 'is-selected' : '' }}" href="{{ path(listRoute, {status: statusFilter|default(null)}) }}">Tous les clients</a>
         <div class="dropdown__divider"></div>
         {% for client in clients %}
-            <a class="dropdown__item {{ selectedClient and selectedClient.id == client.id ? 'is-selected' : '' }}" href="{{ path('admin_payment_list', {client: client.id, status: statusFilter|default(null)}) }}">
+            <a class="dropdown__item {{ selectedClient and selectedClient.id == client.id ? 'is-selected' : '' }}" href="{{ path(listRoute, {client: client.id, status: statusFilter|default(null)}) }}">
                 {% include 'components/_client_avatar.html.twig' with {client: client, size: 'sm'} only %}
                 {{ client.name }}
             </a>

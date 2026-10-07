@@ -112,7 +112,7 @@
                             <div class="kv-row">
                                 <dt>
                                     {{ payment.client.name }}
-                                    <span class="text-muted">· {{ payment.amount }} € · {{ payment.insertionDate|date('d/m H:i') }}</span>
+                                    <span class="text-muted">· {{ payment.helloAssoConfig.label }} · {{ payment.amount }} € · {{ payment.insertionDate|date('d/m H:i') }}</span>
                                 </dt>
                                 <dd>{{ payment.error ?: '—' }}</dd>
                             </div>

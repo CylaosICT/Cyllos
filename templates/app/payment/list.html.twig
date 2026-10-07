@@ -21,7 +21,7 @@
             <table>
                 <thead>
                     <tr>
-                        {% if client.helloAssoConfigs|length > 1 %}<th>Formulaire</th>{% endif %}
+                        <th>Formulaire</th>
                         <th>Id</th>
                         <th>Date</th>
                         <th>Montant</th>
@@ -36,12 +36,10 @@
                     {% for payment in payments %}
                         {% set hasAlias = aliasedEmails[payment.client.id ~ '|' ~ payment.payerEmail] is defined %}
                         <tr>
-                            {% if client.helloAssoConfigs|length > 1 %}
-                                <td class="cell-muted" title="Formulaire {{ payment.helloAssoConfig.active ? 'actif' : 'désactivé' }}">
-                                    <span class="dot {{ payment.helloAssoConfig.active ? 'dot--active' : 'dot--danger' }}"></span>
-                                    {{ payment.helloAssoConfig.label }}
-                                </td>
-                            {% endif %}
+                            <td class="cell-muted" title="Formulaire {{ payment.helloAssoConfig.active ? 'actif' : 'désactivé' }}">
+                                <span class="dot {{ payment.helloAssoConfig.active ? 'dot--active' : 'dot--danger' }}"></span>
+                                {{ payment.helloAssoConfig.label }}
+                            </td>
                             <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
                             <td>{{ payment.paymentDate|date('d/m/Y H:i') }}</td>
                             <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €</td>

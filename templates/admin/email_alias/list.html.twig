@@ -1,0 +1,52 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Redirections e-mail - Cyllos{% endblock %}
+{% block content_width %}content--full{% endblock %}
+
+{% block breadcrumb %}{% if selectedClient %}<div class="topbar__crumb"><a href="{{ path('admin_client_show', {id: selectedClient.id}) }}">{{ selectedClient.name }}</a> / Redirections e-mail</div>{% endif %}{% endblock %}
+{% block page_title %}Redirections e-mail{% endblock %}
+{% block page_actions %}
+    {% include 'components/_client_filter_dropdown.html.twig' with {clients: clients, selectedClient: selectedClient, route: 'admin_email_alias_list'} only %}
+{% endblock %}
+
+{% block body %}
+    {% if emailAliases is empty %}
+        <div class="table-wrapper">
+            <div class="empty-state">
+                <div class="empty-state__icon">{{ icons.render('rule') }}</div>
+                <h3>Aucune redirection</h3>
+                <p>Les règles de correction d'e-mail créées pour {{ selectedClient ? 'ce client' : 'les clients' }} apparaîtront ici.</p>
+            </div>
+        </div>
+    {% else %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Client</th>
+                        <th>E-mail HelloAsso</th>
+                        <th>E-mail Cyclos utilisé</th>
+                        <th>Créée le</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alias in emailAliases %}
+                        <tr>
+                            <td><a href="{{ path('admin_client_show', {id: alias.client.id}) }}">{{ alias.client.name }}</a></td>
+                            <td class="cell-primary">{{ alias.sourceEmail }}</td>
+                            <td>{{ alias.targetEmail }}</td>
+                            <td class="cell-muted">{{ alias.createdAt|date('d/m/Y H:i') }}</td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    <a class="btn btn--secondary btn--sm" href="{{ path('admin_payment_list', {client: alias.client.id}) }}">Paiements</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

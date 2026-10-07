@@ -47,6 +47,9 @@
                             <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_payment' ? 'is-active' : '' }}" href="{{ path('admin_payment_list') }}">
                                 {{ icons.render('payments') }} Paiements
                             </a>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_email_alias' ? 'is-active' : '' }}" href="{{ path('admin_email_alias_list') }}">
+                                {{ icons.render('rule') }} Redirections e-mail
+                            </a>
                             <a class="nav-link {{ app.request.attributes.get('_route') starts with 'admin_team' ? 'is-active' : '' }}" href="{{ path('admin_team_list') }}">
                                 {{ icons.render('key') }} Équipe
                             </a>
@@ -119,7 +122,7 @@
                             {% if is_granted('ROLE_ADMIN') %}
                                 <form class="topbar__search" method="get" action="{{ path('admin_search') }}">
                                     {{ icons.render('search') }}
-                                    <input type="search" name="q" placeholder="Rechercher un client, un paiement…" value="{{ app.request.attributes.get('_route') == 'admin_search' ? app.request.query.get('q') : '' }}">
+                                    <input type="search" name="q" placeholder="Rechercher client, paiement, redirection, log…" value="{{ app.request.attributes.get('_route') == 'admin_search' ? app.request.query.get('q') : '' }}">
                                 </form>
                             {% endif %}
                             {% block page_actions %}{% endblock %}

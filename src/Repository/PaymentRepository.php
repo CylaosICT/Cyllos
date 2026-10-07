@@ -280,6 +280,8 @@ class PaymentRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('p')
             ->leftJoin('p.client', 'c')
             ->addSelect('c')
+            ->leftJoin('p.helloAssoConfig', 'hac')
+            ->addSelect('hac')
             ->andWhere('p.status = :status')
             ->setParameter('status', $status)
             ->orderBy('p.insertionDate', 'DESC')
@@ -301,6 +303,8 @@ class PaymentRepository extends ServiceEntityRepository
     public function findRecentForClient(Client $client, int $limit = 8): array
     {
         return $this->createQueryBuilder('p')
+            ->leftJoin('p.helloAssoConfig', 'hac')
+            ->addSelect('hac')
             ->andWhere('p.client = :client')
             ->setParameter('client', $client)
             ->orderBy('p.insertionDate', 'DESC')
@@ -349,7 +353,8 @@ class PaymentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Matches individual fields (first name, last name, email) as well as the
+     * Matches individual fields (first name, last name, emails, form label,
+     * client name) as well as the
      * concatenated "firstName lastName" pair, so a full-name search like
      * "Eric DE BEL-AIR" matches even though neither field alone contains it.
      *
@@ -360,8 +365,10 @@ class PaymentRepository extends ServiceEntityRepository
         $qb = $this->createQueryBuilder('p')
             ->leftJoin('p.client', 'c')
             ->addSelect('c')
+            ->leftJoin('p.helloAssoConfig', 'hac')
+            ->addSelect('hac')
             ->andWhere(
-                'p.payerFirstName LIKE :q OR p.payerLastName LIKE :q OR p.email LIKE :q'
+                'p.payerFirstName LIKE :q OR p.payerLastName LIKE :q OR p.email LIKE :q OR p.payerEmail LIKE :q OR hac.label LIKE :q OR c.name LIKE :q'
                 . " OR CONCAT(p.payerFirstName, ' ', p.payerLastName) LIKE :q"
                 . " OR CONCAT(p.payerLastName, ' ', p.payerFirstName) LIKE :q",
             )

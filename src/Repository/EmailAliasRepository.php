@@ -66,4 +66,40 @@ class EmailAliasRepository extends ServiceEntityRepository
 
         return $set;
     }
+
+    /**
+     * Every rule across all clients (admin overview), client eager-loaded,
+     * optionally scoped to a single client.
+     *
+     * @return EmailAlias[]
+     */
+    public function findAllForAdmin(?Client $client = null): array
+    {
+        $qb = $this->createQueryBuilder('a')
+            ->leftJoin('a.client', 'c')
+            ->addSelect('c')
+            ->orderBy('a.createdAt', 'DESC');
+
+        if ($client !== null) {
+            $qb->andWhere('a.client = :client')->setParameter('client', $client);
+        }
+
+        return $qb->getQuery()->getResult();
+    }
+
+    /**
+     * @return EmailAlias[]
+     */
+    public function search(string $query, int $limit = 8): array
+    {
+        return $this->createQueryBuilder('a')
+            ->leftJoin('a.client', 'c')
+            ->addSelect('c')
+            ->andWhere('a.sourceEmail LIKE :q OR a.targetEmail LIKE :q OR c.name LIKE :q')
+            ->setParameter('q', '%' . strtolower($query) . '%')
+            ->orderBy('a.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }
