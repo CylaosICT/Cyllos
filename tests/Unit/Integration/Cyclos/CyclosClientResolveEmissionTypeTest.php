@@ -40,6 +40,21 @@ class CyclosClientResolveEmissionTypeTest extends TestCase
         self::assertSame('emission.CreditPro', $this->client->resolveEmissionType($this->config, $user));
     }
 
+    public function testResolvesProfessionalEmissionFromAnyConfiguredGroup(): void
+    {
+        $config = (new CyclosConfig())
+            ->setGroupProInternal('b2, b3,b4')
+            ->setGroupsPartInternal('a2')
+            ->setEmissionProInternal('emission.CreditPro')
+            ->setEmissionPartInternal('emission.CreditParticulier');
+
+        foreach (['b2', 'b3', 'b4'] as $group) {
+            self::assertSame('emission.CreditPro', $this->client->resolveEmissionType($config, new CyclosUser('1', $group)));
+        }
+        self::assertNull($this->client->resolveEmissionType($config, new CyclosUser('1', 'b2,b3,b4')));
+        self::assertNull($this->client->resolveEmissionType($config, new CyclosUser('1', 'b5')));
+    }
+
     public function testResolvesParticulierEmissionFromAnyConfiguredGroup(): void
     {
         self::assertSame('emission.CreditParticulier', $this->client->resolveEmissionType($this->config, new CyclosUser('1', 'part')));

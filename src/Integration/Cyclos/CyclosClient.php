@@ -90,7 +90,7 @@ class CyclosClient
      */
     public function resolveEmissionType(CyclosConfig $config, CyclosUser $user): ?string
     {
-        if ($user->groupInternalName === $config->getGroupProInternal()) {
+        if (\in_array($user->groupInternalName, $config->getGroupsProInternalList(), true)) {
             return $config->getEmissionProInternal();
         }
 

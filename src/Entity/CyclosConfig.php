@@ -36,6 +36,9 @@ class CyclosConfig
     #[Assert\NotBlank]
     private string $groupProInternal = '';
 
+    // Comma-separated list of internal group names considered "professionnel"
+    // (see getGroupsProInternalList()); the column name predates multi-group support.
+
     /**
      * Comma-separated list of internal group names considered "particulier".
      */
@@ -114,6 +117,14 @@ class CyclosConfig
         $this->groupProInternal = $groupProInternal;
 
         return $this;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getGroupsProInternalList(): array
+    {
+        return array_values(array_filter(array_map('trim', explode(',', $this->groupProInternal))));
     }
 
     public function getGroupsPartInternal(): string

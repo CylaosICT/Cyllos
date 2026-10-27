@@ -32,7 +32,8 @@ class CyclosConfigType extends AbstractType
                 'help' => $options['secret_required'] ? null : 'Laisser vide pour conserver le mot de passe actuel.',
             ])
             ->add('groupProInternal', TextType::class, [
-                'label' => 'Nom interne du groupe "professionnels"',
+                'label' => 'Nom(s) interne(s) du/des groupe(s) "professionnels"',
+                'help' => 'Séparer plusieurs groupes par une virgule.',
             ])
             ->add('groupsPartInternal', TextType::class, [
                 'label' => 'Nom(s) interne(s) du/des groupe(s) "particuliers"',
