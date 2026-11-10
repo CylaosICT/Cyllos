@@ -61,7 +61,7 @@ class ClientCustomizationType extends AbstractType
                 'trim' => false,
                 'attr' => ['placeholder' => CyclosClient::PAYMENT_DESCRIPTION_PREFIX],
                 'help' => 'L’identifiant HelloAsso est ajouté immédiatement à la suite — pensez à l’espace final. '
-                    . 'Vide = « Paiement automatique, id technique  ». '
+                    . 'Vide = « Recharge instantanée N°  ». '
                     . 'Le contrôle anti-doublon reconnaît aussi l’ancien libellé après un changement.',
                 'row_attr' => ['class' => 'form-row--span2'],
             ])

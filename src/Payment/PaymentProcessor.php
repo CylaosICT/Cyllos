@@ -356,7 +356,10 @@ class PaymentProcessor
         // earlier credit is recorded in Cyclos under the old description.
         $duplicateCandidates = array_values(array_unique([
             $description,
-            CyclosClient::PAYMENT_DESCRIPTION_PREFIX . $payment->getHelloAssoPaymentId(),
+            ...array_map(
+                static fn (string $legacyPrefix): string => $legacyPrefix . $payment->getHelloAssoPaymentId(),
+                [CyclosClient::PAYMENT_DESCRIPTION_PREFIX, ...CyclosClient::LEGACY_PAYMENT_DESCRIPTION_PREFIXES],
+            ),
         ]));
 
         if ($this->cyclosClient->hasAlreadyCreditedPayment($cyclosConfig, $email, $duplicateCandidates)) {

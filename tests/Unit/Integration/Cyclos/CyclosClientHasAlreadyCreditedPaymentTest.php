@@ -51,7 +51,7 @@ class CyclosClientHasAlreadyCreditedPaymentTest extends TestCase
     {
         $httpClient = new MockHttpClient(new MockResponse(json_encode([
             ['description' => null],
-            ['description' => 'Paiement automatique, id technique 65456'],
+            ['description' => 'Recharge instantanée N° 65456'],
             ['description' => 'Cotisation CAF'],
         ])));
 
@@ -60,7 +60,7 @@ class CyclosClientHasAlreadyCreditedPaymentTest extends TestCase
         self::assertTrue($client->hasAlreadyCreditedPayment(
             $this->makeConfig(),
             'eric.debelair@gmail.com',
-            ['Paiement automatique, id technique 65456'],
+            ['Recharge instantanée N° 65456'],
         ));
     }
 
@@ -75,7 +75,7 @@ class CyclosClientHasAlreadyCreditedPaymentTest extends TestCase
         self::assertFalse($client->hasAlreadyCreditedPayment(
             $this->makeConfig(),
             'eric.debelair@gmail.com',
-            ['Paiement automatique, id technique 65456'],
+            ['Recharge instantanée N° 65456'],
         ));
     }
 
@@ -93,8 +93,14 @@ class CyclosClientHasAlreadyCreditedPaymentTest extends TestCase
         self::assertTrue($client->hasAlreadyCreditedPayment(
             $this->makeConfig(),
             'eric.debelair@gmail.com',
-            ['Recharge instantanée 65456', 'Paiement automatique, id technique 65456'],
+            ['Recharge instantanée N° 65456', 'Paiement automatique, id technique 65456'],
         ));
+    }
+
+    public function testLegacyDefaultPrefixesAreDeclared(): void
+    {
+        // The pre-rename default must stay recognised by the duplicate check.
+        self::assertContains('Paiement automatique, id technique ', CyclosClient::LEGACY_PAYMENT_DESCRIPTION_PREFIXES);
     }
 
     public function testReturnsFalseWhenTheAccountHasNoTransactions(): void
@@ -106,7 +112,7 @@ class CyclosClientHasAlreadyCreditedPaymentTest extends TestCase
         self::assertFalse($client->hasAlreadyCreditedPayment(
             $this->makeConfig(),
             'eric.debelair@gmail.com',
-            ['Paiement automatique, id technique 65456'],
+            ['Recharge instantanée N° 65456'],
         ));
     }
 }

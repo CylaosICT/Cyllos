@@ -154,7 +154,7 @@
                 <div class="kv-row"><dt>Modèles d’e-mail modifiés</dt><dd>{{ customEmailCount > 0 ? customEmailCount ~ ' / 6' : 'aucun (défauts)' }}</dd></div>
                 <div class="kv-row"><dt>Préfixe des sujets</dt><dd>{{ customization and customization.emailSubjectPrefix is not null ? '« ' ~ customization.emailSubjectPrefix ~ ' »' : '[Cyllos]' }}</dd></div>
                 <div class="kv-row"><dt>Pied de page</dt><dd>{{ customization and customization.emailFooter ? 'défini' : '—' }}</dd></div>
-                <div class="kv-row"><dt>Description Cyclos</dt><dd>{{ customization and customization.cyclosDescriptionPrefix ? '« ' ~ customization.cyclosDescriptionPrefix ~ ' »' : 'Paiement automatique, id technique ' }}</dd></div>
+                <div class="kv-row"><dt>Description Cyclos</dt><dd>{{ customization and customization.cyclosDescriptionPrefix ? '« ' ~ customization.cyclosDescriptionPrefix ~ ' »' : 'Recharge instantanée N° ' }}</dd></div>
                 <div class="kv-row"><dt>Libellé mode aperçu</dt><dd>{{ customization and customization.previewModeLabel ? customization.previewModeLabel : 'aperçu (non crédité)' }}</dd></div>
             </dl>
         </div>
