@@ -52,7 +52,7 @@ class CyclosClientPerformPaymentTest extends TestCase
             $this->makeConfig(),
             'payer@example.com',
             25.0,
-            'Paiement automatique, id technique 42',
+            'Recharge instantanée N° 42',
             'emission.Part',
             preview: false,
         );

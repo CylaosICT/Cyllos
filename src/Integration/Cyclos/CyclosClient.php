@@ -23,7 +23,16 @@ class CyclosClient
      * still checks this legacy value too when looking for a duplicate, so a
      * client that switches prefix can't get a payment double-credited.
      */
-    public const PAYMENT_DESCRIPTION_PREFIX = 'Paiement automatique, id technique ';
+    public const PAYMENT_DESCRIPTION_PREFIX = 'Recharge instantanée N° ';
+
+    /**
+     * Former default prefixes. Payments credited under these wordings still
+     * exist in Cyclos, so the duplicate check must keep recognising them.
+     */
+    public const LEGACY_PAYMENT_DESCRIPTION_PREFIXES = [
+        'Paiement automatique, id technique ',
+        'Recharge instantanée ',
+    ];
 
     /**
      * How many of the user's most recent credit transactions
