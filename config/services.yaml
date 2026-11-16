@@ -81,6 +81,11 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\Deployment\PaySiteUpdater:
+        arguments:
+            $paySiteBaseUrl: '%env(PAY_SITE_BASE_URL)%'
+            $internalSecret: '%env(PAY_INTERNAL_SECRET)%'
+
 when@test:
     services:
         # Public so functional tests can swap it for a double (container->set()).
