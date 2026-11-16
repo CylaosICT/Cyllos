@@ -7,6 +7,10 @@ framework:
             helloasso.client:
                 scope: '.*'
                 retry_failed:
+                    # 429 is deliberately NOT retried here: immediate retries only made
+                    # the rate limiting worse. HelloAssoClient handles it (cool-down +
+                    # delayed Messenger retry).
+                    http_codes: [423, 425, 500, 502, 503, 504, 507, 510]
                     max_retries: 3
                     delay: 1000
                     multiplier: 2

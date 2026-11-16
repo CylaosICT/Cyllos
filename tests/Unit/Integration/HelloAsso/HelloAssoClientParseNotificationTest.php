@@ -8,6 +8,7 @@ use App\Security\SecretEncryptor;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
+use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\HttpClient\MockHttpClient;
 
 class HelloAssoClientParseNotificationTest extends TestCase
@@ -21,6 +22,7 @@ class HelloAssoClientParseNotificationTest extends TestCase
             new SecretEncryptor(base64_encode(str_repeat('a', 32))),
             new NullLogger(),
             new ApiCallLogger($this->createStub(EntityManagerInterface::class)),
+            new ArrayAdapter(),
         );
     }
 
