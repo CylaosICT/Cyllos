@@ -350,6 +350,10 @@ Créer ensuite un compte pour ce client (accès limité à ses propres paiements
 php bin/console app:user:create client@example.com "mot-de-passe" --client=<slug>
 ```
 
+### Personnaliser la page de paiement (Stripe)
+
+Fiche client → **Personnaliser** : couleurs, style d'écriture (4), forme des coins (3), fond de page (dégradé animé, formes flottantes, uni), titre, texte d'introduction, libellé du bouton (`{montant}` est remplacé), message de succès, ligne d'aide, étape de confirmation facultative et montants rapides. Le logo est celui de la fiche client. Tout est facultatif et validé (liste blanche, couleurs `#RRGGBB`, texte brut) ; la vue `pay_client_view` (migration `Version20261116140000`) expose ces valeurs à cyllos-pay, qui les applique sans script ni style en ligne.
+
 ## Tâches planifiées
 
 Trois tâches sont enregistrées via Symfony Scheduler dans

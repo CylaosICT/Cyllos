@@ -132,6 +132,240 @@ class StripeConfig
         return $this;
     }
 
+    // --- Payment page: look, wording and flow (cyllos-pay). Everything is optional;
+    // --- an empty value means "use the default". All of it is plain text, never HTML.
+
+    /** Allowed type styles: key => label. The payment site maps each key to a system font stack. */
+    public const PAY_FONTS = [
+        'modern' => 'Moderne (sans-serif)',
+        'classic' => 'Classique (serif)',
+        'rounded' => 'Arrondie, conviviale',
+        'mono' => 'Technique (monospace)',
+    ];
+
+    /** Allowed corner styles: key => label. */
+    public const PAY_RADII = [
+        'sharp' => 'Angles droits',
+        'soft' => 'Légèrement arrondis',
+        'round' => 'Très arrondis',
+    ];
+
+    /** Allowed page backgrounds: key => label. */
+    public const PAY_BACKGROUNDS = [
+        'aurora' => 'Dégradé animé',
+        'shapes' => 'Formes flottantes',
+        'plain' => 'Uni',
+    ];
+
+    public const PAY_MAX_QUICK_AMOUNTS = 6;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(choices: ['modern', 'classic', 'rounded', 'mono'], message: 'Police inconnue.')]
+    private ?string $payFont = null;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(choices: ['sharp', 'soft', 'round'], message: 'Style de coins inconnu.')]
+    private ?string $payRadius = null;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(choices: ['aurora', 'shapes', 'plain'], message: 'Fond inconnu.')]
+    private ?string $payBackground = null;
+
+    #[ORM\Column(length: 80, nullable: true)]
+    #[Assert\Length(max: 80)]
+    private ?string $payTitle = null;
+
+    #[ORM\Column(length: 300, nullable: true)]
+    #[Assert\Length(max: 300)]
+    private ?string $payIntro = null;
+
+    #[ORM\Column(length: 40, nullable: true)]
+    #[Assert\Length(max: 40)]
+    private ?string $payButtonLabel = null;
+
+    #[ORM\Column(length: 300, nullable: true)]
+    #[Assert\Length(max: 300)]
+    private ?string $paySuccessMessage = null;
+
+    #[ORM\Column(length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
+    private ?string $paySupportText = null;
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $payShowConfirmStep = true;
+
+    /** Comma-separated whole euro amounts offered as one-tap choices, e.g. "10,20,50,100". */
+    #[ORM\Column(length: 60, nullable: true)]
+    private ?string $payQuickAmounts = null;
+
+    public function getPayFont(): ?string
+    {
+        return $this->payFont;
+    }
+
+    public function setPayFont(?string $payFont): static
+    {
+        $this->payFont = self::blankToNull($payFont);
+
+        return $this;
+    }
+
+    public function getPayRadius(): ?string
+    {
+        return $this->payRadius;
+    }
+
+    public function setPayRadius(?string $payRadius): static
+    {
+        $this->payRadius = self::blankToNull($payRadius);
+
+        return $this;
+    }
+
+    public function getPayBackground(): ?string
+    {
+        return $this->payBackground;
+    }
+
+    public function setPayBackground(?string $payBackground): static
+    {
+        $this->payBackground = self::blankToNull($payBackground);
+
+        return $this;
+    }
+
+    public function getPayTitle(): ?string
+    {
+        return $this->payTitle;
+    }
+
+    public function setPayTitle(?string $payTitle): static
+    {
+        $this->payTitle = self::blankToNull($payTitle);
+
+        return $this;
+    }
+
+    public function getPayIntro(): ?string
+    {
+        return $this->payIntro;
+    }
+
+    public function setPayIntro(?string $payIntro): static
+    {
+        $this->payIntro = self::blankToNull($payIntro);
+
+        return $this;
+    }
+
+    public function getPayButtonLabel(): ?string
+    {
+        return $this->payButtonLabel;
+    }
+
+    public function setPayButtonLabel(?string $payButtonLabel): static
+    {
+        $this->payButtonLabel = self::blankToNull($payButtonLabel);
+
+        return $this;
+    }
+
+    public function getPaySuccessMessage(): ?string
+    {
+        return $this->paySuccessMessage;
+    }
+
+    public function setPaySuccessMessage(?string $paySuccessMessage): static
+    {
+        $this->paySuccessMessage = self::blankToNull($paySuccessMessage);
+
+        return $this;
+    }
+
+    public function getPaySupportText(): ?string
+    {
+        return $this->paySupportText;
+    }
+
+    public function setPaySupportText(?string $paySupportText): static
+    {
+        $this->paySupportText = self::blankToNull($paySupportText);
+
+        return $this;
+    }
+
+    public function isPayShowConfirmStep(): bool
+    {
+        return $this->payShowConfirmStep;
+    }
+
+    public function setPayShowConfirmStep(bool $payShowConfirmStep): static
+    {
+        $this->payShowConfirmStep = $payShowConfirmStep;
+
+        return $this;
+    }
+
+    public function getPayQuickAmounts(): ?string
+    {
+        return $this->payQuickAmounts;
+    }
+
+    public function setPayQuickAmounts(?string $payQuickAmounts): static
+    {
+        // Normalised to "10,20,50": spaces and empty entries dropped.
+        $parts = array_filter(array_map('trim', explode(',', (string) $payQuickAmounts)), static fn (string $p): bool => $p !== '');
+        $this->payQuickAmounts = $parts === [] ? null : implode(',', $parts);
+
+        return $this;
+    }
+
+    /**
+     * @return list<int> the quick amounts, in euros, as configured
+     */
+    public function getPayQuickAmountList(): array
+    {
+        return $this->payQuickAmounts === null ? [] : array_map('intval', explode(',', $this->payQuickAmounts));
+    }
+
+    #[Assert\Callback]
+    public function validateQuickAmounts(\Symfony\Component\Validator\Context\ExecutionContextInterface $context): void
+    {
+        if ($this->payQuickAmounts === null) {
+            return;
+        }
+
+        $parts = explode(',', $this->payQuickAmounts);
+        $problem = null;
+        if (\count($parts) > self::PAY_MAX_QUICK_AMOUNTS) {
+            $problem = \sprintf('Au plus %d montants rapides.', self::PAY_MAX_QUICK_AMOUNTS);
+        } elseif (\count($parts) !== \count(array_unique($parts))) {
+            $problem = 'Chaque montant ne doit apparaître qu\'une fois.';
+        } else {
+            foreach ($parts as $part) {
+                if (preg_match('/^[1-9][0-9]{0,5}$/', $part) !== 1) {
+                    $problem = 'Montants rapides : des nombres entiers d\'euros séparés par des virgules (ex. 10, 20, 50).';
+                    break;
+                }
+                if ((int) $part < $this->minAmount || (int) $part > $this->maxAmount) {
+                    $problem = \sprintf('Chaque montant rapide doit être compris entre %d € et %d € (bornes du client).', $this->minAmount, $this->maxAmount);
+                    break;
+                }
+            }
+        }
+
+        if ($problem !== null) {
+            $context->buildViolation($problem)->atPath('payQuickAmounts')->addViolation();
+        }
+    }
+
+    private static function blankToNull(?string $value): ?string
+    {
+        $value = $value === null ? null : trim($value);
+
+        return $value === '' ? null : $value;
+    }
+
     private static function normalizeColor(?string $color): ?string
     {
         $color = $color === null ? null : trim($color);
