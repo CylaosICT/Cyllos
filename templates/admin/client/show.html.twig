@@ -21,6 +21,9 @@
 {% endblock %}
 {% block page_actions %}
     <a class="btn btn--secondary" href="{{ path('admin_payment_list', {client: client.id}) }}">{{ icons.render('payments') }} Paiements</a>
+    {% if client.usesStripe and client.stripeConfig %}
+        <a class="btn btn--secondary" href="{{ path('admin_client_edit_pay_page', {id: client.id}) }}">{{ icons.render('settings') }} Page de paiement</a>
+    {% endif %}
     {% if client.usesHelloAsso %}
         <form method="post" action="{{ path('admin_client_fetch', {id: client.id}) }}">
             <input type="hidden" name="_token" value="{{ csrf_token('client_fetch_' ~ client.id) }}">
@@ -72,13 +75,40 @@
                         <div class="kv-row"><dt>Secret webhook</dt><dd>Enregistré (chiffré)</dd></div>
                         <div class="kv-row"><dt>Montant min</dt><dd>{{ stripe.minAmount }} €</dd></div>
                         <div class="kv-row"><dt>Montant max</dt><dd>{{ stripe.maxAmount }} €</dd></div>
-                        <div class="kv-row"><dt>Page de paiement</dt><dd>
-                            {% for c in [stripe.brandPrimaryColor, stripe.brandBackgroundColor, stripe.brandSurfaceColor, stripe.brandTextColor] %}
-                                {% if c %}<span title="{{ c }}" style="display:inline-block;width:1rem;height:1rem;border-radius:50%;background:{{ c }};border:1px solid rgba(128,128,128,.5);vertical-align:middle;margin-right:.25rem;"></span>{% endif %}
-                            {% else %}Thème par défaut{% endfor %}
-                            {% if stripe.brandPrimaryColor or stripe.brandBackgroundColor or stripe.brandSurfaceColor or stripe.brandTextColor %}<code>{{ stripe.brandPrimaryColor ?? 'défaut' }}</code>{% endif %}
-                            <a class="btn btn--ghost btn--sm" style="margin-left:.5rem;" href="{{ path('admin_client_edit_pay_page', {id: client.id}) }}">Personnaliser</a>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="summary-card">
+                <div class="summary-card__header">
+                    <div class="summary-card__title">
+                        <span class="summary-card__icon">{{ icons.render('inbox') }}</span>
+                        <span class="summary-card__title-stack">
+                            <span class="summary-card__title-eyebrow">Cyllos-Pay</span>
+                            <span>Page de paiement</span>
+                        </span>
+                    </div>
+                    <a class="btn btn--sm" href="{{ path('admin_client_edit_pay_page', {id: client.id}) }}">Modifier la palette et le style</a>
+                </div>
+                <div class="summary-card__body">
+                    <dl class="kv-list">
+                        <div class="kv-row"><dt>Palette</dt><dd>
+                            {% set colors = [stripe.brandPrimaryColor, stripe.brandBackgroundColor, stripe.brandSurfaceColor, stripe.brandTextColor] %}
+                            {% if colors|filter(c => c)|length %}
+                                <span class="pay-paletteline">
+                                    <span class="pay-paletteline__dots">{% for c in colors %}{% if c %}<span title="{{ c }}" style="background:{{ c }}"></span>{% endif %}{% endfor %}</span>
+                                    <code>{{ stripe.brandPrimaryColor ?? 'défaut' }}</code>
+                                </span>
+                            {% else %}
+                                <span class="text-muted">Thème par défaut</span>
+                            {% endif %}
                         </dd></div>
+                        <div class="kv-row"><dt>Style</dt><dd>
+                            {{ constant('App\\Entity\\StripeConfig::PAY_FONTS')[stripe.payFont] ?? 'Écriture moderne' }} ·
+                            {{ constant('App\\Entity\\StripeConfig::PAY_RADII')[stripe.payRadius] ?? 'Légèrement arrondis' }} ·
+                            {{ constant('App\\Entity\\StripeConfig::PAY_BACKGROUNDS')[stripe.payBackground] ?? 'Dégradé animé' }}
+                        </dd></div>
+                        <div class="kv-row"><dt>Parcours</dt><dd>{{ stripe.payShowConfirmStep ? 'Avec confirmation du compte' : 'Sans étape de confirmation' }}{% if stripe.payQuickAmounts %} · montants rapides : {{ stripe.payQuickAmounts }} €{% endif %}</dd></div>
                     </dl>
                 </div>
             </div>

@@ -2,47 +2,81 @@
     Colour picker for the payment page. Expects `form` with brandPrimaryColor, brandBackgroundColor,
     brandSurfaceColor and brandTextColor; optional `logo_url` (the client's logo, for "Suggérer depuis le logo").
     Behaviour: assets/controllers/pay_palette_controller.js
+    Palettes: "Nom|sombre/clair|principale|fond|carte|texte".
 #}
-{% set palettes = [
-    {name: 'Océan', primary: '#38bdf8', background: '#0b1220', surface: '#131c2e', text: '#e6f1ff'},
-    {name: 'Forêt', primary: '#4ade80', background: '#0d1a14', surface: '#14261d', text: '#e8f5ec'},
-    {name: 'Ambre', primary: '#f59e0b', background: '#1c1410', surface: '#2a1f17', text: '#fdf3e3'},
-    {name: 'Prune', primary: '#c084fc', background: '#150f1f', surface: '#211733', text: '#f3e8ff'},
-    {name: 'Corail', primary: '#fb7185', background: '#1c1015', surface: '#2a1820', text: '#ffe9ed'},
-    {name: 'Ardoise', primary: '#2563eb', background: '#f1f5f9', surface: '#ffffff', text: '#0f172a'},
-    {name: 'Menthe', primary: '#0d9488', background: '#f0fdfa', surface: '#ffffff', text: '#134e4a'},
-    {name: 'Rose', primary: '#e11d48', background: '#fff1f2', surface: '#ffffff', text: '#4c0519'},
-    {name: 'Sable', primary: '#b45309', background: '#faf5eb', surface: '#fffdf8', text: '#2b2118'},
-    {name: 'Mono', primary: '#111827', background: '#f3f4f6', surface: '#ffffff', text: '#111827'},
+{% set raw_palettes = [
+    'Océan|dark|#38bdf8|#0b1220|#131c2e|#e6f1ff',
+    'Forêt|dark|#4ade80|#0d1a14|#14261d|#e8f5ec',
+    'Ambre|dark|#f59e0b|#1c1410|#2a1f17|#fdf3e3',
+    'Prune|dark|#c084fc|#150f1f|#211733|#f3e8ff',
+    'Corail|dark|#fb7185|#1c1015|#2a1820|#ffe9ed',
+    'Minuit|dark|#818cf8|#0a0a1a|#14142e|#e8e8ff',
+    'Aurore|dark|#2dd4bf|#071a1a|#0f2a2b|#e0fbf8',
+    'Rubis|dark|#ef4444|#1a0b0b|#281414|#ffe8e8',
+    'Cuivre|dark|#fb923c|#1a0f08|#2a1b10|#ffeedd',
+    'Lagon|dark|#22d3ee|#06161c|#0d2530|#e0f8ff',
+    'Lavande|dark|#a78bfa|#12101f|#1d1a33|#efeaff',
+    'Lime|dark|#a3e635|#0f1706|#1a260c|#f2fbdc',
+    'Magenta|dark|#e879f9|#1a0a1c|#2a1430|#fde8ff',
+    'Graphite|dark|#e5e7eb|#111113|#1c1c20|#f4f4f5',
+    'Cobalt|dark|#3b82f6|#08101f|#0f1c36|#e5eeff',
+    'Émeraude|dark|#10b981|#06150f|#0e2619|#dcfce9',
+    'Ardoise|light|#2563eb|#f1f5f9|#ffffff|#0f172a',
+    'Menthe|light|#0d9488|#f0fdfa|#ffffff|#134e4a',
+    'Rose|light|#e11d48|#fff1f2|#ffffff|#4c0519',
+    'Sable|light|#b45309|#faf5eb|#fffdf8|#2b2118',
+    'Mono|light|#111827|#f3f4f6|#ffffff|#111827',
+    'Ciel|light|#0284c7|#f0f9ff|#ffffff|#0c4a6e',
+    'Glycine|light|#7c3aed|#f5f3ff|#ffffff|#2e1065',
+    'Pêche|light|#ea580c|#fff7ed|#ffffff|#431407',
+    'Citron|light|#ca8a04|#fefce8|#ffffff|#422006',
+    'Sauge|light|#4d7c0f|#f4f7ee|#ffffff|#1a2e05',
+    'Terracotta|light|#c2410c|#fbf1ec|#fffaf7|#3b1a0e',
+    'Marine|light|#1e3a8a|#eef2ff|#ffffff|#0f1b4d',
+    'Fuchsia|light|#c026d3|#fdf4ff|#ffffff|#4a044e',
+    'Olive|light|#65a30d|#f7f8ee|#fffffc|#26300a',
+    'Turquoise|light|#0891b2|#ecfeff|#ffffff|#164e63',
+    'Bordeaux|light|#9f1239|#fdf2f4|#ffffff|#3f0a18',
 ] %}
 {% set fields = [
-    {key: 'primary', field: form.brandPrimaryColor, hint: 'boutons, accents'},
-    {key: 'background', field: form.brandBackgroundColor, hint: 'fond de page'},
-    {key: 'surface', field: form.brandSurfaceColor, hint: 'carte'},
-    {key: 'text', field: form.brandTextColor, hint: 'texte'},
+    {key: 'primary', field: form.brandPrimaryColor, hint: 'Boutons et accents'},
+    {key: 'background', field: form.brandBackgroundColor, hint: 'Fond de la page'},
+    {key: 'surface', field: form.brandSurfaceColor, hint: 'Carte centrale'},
+    {key: 'text', field: form.brandTextColor, hint: 'Textes'},
 ] %}
 
 <div class="pay-palette" data-controller="pay-palette"{% if logo_url is defined and logo_url %} data-pay-palette-logo-value="{{ logo_url }}"{% endif %}>
     <div class="pay-palette__block">
-        <h3 class="pay-palette__title">Palettes prêtes à l'emploi</h3>
+        <div class="pay-palette__head">
+            <h3 class="pay-palette__title">Palettes prêtes à l'emploi <span class="text-muted">({{ raw_palettes|length }})</span></h3>
+            <div class="pay-palette__filters" role="group" aria-label="Filtrer les palettes">
+                <button type="button" class="is-on" data-action="pay-palette#filter" data-pay-palette-target="filterButton" data-mode="all">Toutes</button>
+                <button type="button" data-action="pay-palette#filter" data-pay-palette-target="filterButton" data-mode="dark">Sombres</button>
+                <button type="button" data-action="pay-palette#filter" data-pay-palette-target="filterButton" data-mode="light">Claires</button>
+            </div>
+        </div>
         <div class="pay-palette__swatches">
-            {% for p in palettes %}
-                <button type="button" class="pay-palette__swatch" title="{{ p.name }}"
-                        data-action="pay-palette#applyPalette" data-name="{{ p.name }}"
-                        data-primary="{{ p.primary }}" data-background="{{ p.background }}" data-surface="{{ p.surface }}" data-text="{{ p.text }}">
-                    <span class="pay-palette__chip" style="background:{{ p.background }}">
-                        <span style="background:{{ p.surface }}"></span>
-                        <i style="background:{{ p.primary }}"></i>
+            {% for line in raw_palettes %}
+                {% set p = line|split('|') %}
+                <button type="button" class="pay-palette__swatch" title="{{ p[0] }}" data-pay-palette-target="swatch"
+                        data-action="pay-palette#applyPalette" data-name="{{ p[0] }}" data-mode="{{ p[1] }}"
+                        data-primary="{{ p[2] }}" data-background="{{ p[3] }}" data-surface="{{ p[4] }}" data-text="{{ p[5] }}">
+                    <span class="pay-palette__chip" style="background:{{ p[3] }}">
+                        <span class="pay-palette__card" style="background:{{ p[4] }}">
+                            <b style="background:{{ p[5] }}"></b>
+                            <b style="background:{{ p[5] }}"></b>
+                            <i style="background:{{ p[2] }}"></i>
+                        </span>
                     </span>
-                    <span class="pay-palette__name">{{ p.name }}</span>
+                    <span class="pay-palette__name">{{ p[0] }}</span>
                 </button>
             {% endfor %}
         </div>
         <div class="pay-palette__tools">
-            <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#theme" data-mode="dark">Thème sombre depuis la couleur principale</button>
-            <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#theme" data-mode="light">Thème clair depuis la couleur principale</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#theme" data-mode="dark">Générer un thème sombre</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#theme" data-mode="light">Générer un thème clair</button>
             {% if logo_url is defined and logo_url %}
-                <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#fromLogo">Suggérer depuis le logo</button>
+                <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#fromLogo">Couleur du logo</button>
             {% endif %}
             <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#clear">Réinitialiser</button>
         </div>
@@ -52,21 +86,25 @@
     <div class="pay-palette__main">
         <div class="pay-palette__fields">
             {% for f in fields %}
-                <div class="pay-palette__field">
-                    {{ form_label(f.field) }}
-                    <div class="pay-palette__input">
-                        <input type="color" value="#000000" aria-label="Sélecteur : {{ f.hint }}"
-                               data-pay-palette-target="{{ f.key }}Picker" data-field="{{ f.key }}" data-action="input->pay-palette#pick">
-                        {{ form_widget(f.field, {attr: {'data-pay-palette-target': f.key, 'data-action': 'input->pay-palette#input'}}) }}
+                <div class="pay-colorfield">
+                    <label class="pay-colorfield__label" for="{{ f.field.vars.id }}">{{ f.field.vars.label }}</label>
+                    <div class="pay-colorfield__control">
+                        <label class="pay-colorfield__swatch" title="Ouvrir le sélecteur de couleur">
+                            <input type="color" value="#000000" aria-label="Sélecteur : {{ f.hint }}"
+                                   data-pay-palette-target="{{ f.key }}Picker" data-field="{{ f.key }}" data-action="input->pay-palette#pick">
+                        </label>
+                        {{ form_widget(f.field, {attr: {'data-pay-palette-target': f.key, 'data-action': 'input->pay-palette#input', 'class': 'pay-colorfield__text'}}) }}
                     </div>
+                    <span class="pay-colorfield__hint">{{ f.hint }}</span>
                     {{ form_errors(f.field) }}
                 </div>
             {% endfor %}
         </div>
 
         <div class="pay-preview" data-pay-palette-target="preview" aria-hidden="true">
+            <div class="pay-preview__label">Aperçu en direct</div>
             <div class="pay-preview__card">
-                <strong class="pay-preview__title">Aperçu de la page</strong>
+                <strong class="pay-preview__title">Recharger mon compte</strong>
                 <div class="pay-preview__steps"><span class="on"></span><span class="on"></span><span></span><span></span></div>
                 <div class="pay-preview__input">prenom.nom@exemple.fr</div>
                 <div class="pay-preview__btn">Continuer</div>
