@@ -87,6 +87,10 @@ class ClientWizardState
         $data = $this->all()['stripe'] ?? [];
         $config->setMinAmount($data['minAmount'] ?? 5);
         $config->setMaxAmount($data['maxAmount'] ?? 250);
+        $config->setBrandPrimaryColor($data['brandPrimaryColor'] ?? null);
+        $config->setBrandBackgroundColor($data['brandBackgroundColor'] ?? null);
+        $config->setBrandSurfaceColor($data['brandSurfaceColor'] ?? null);
+        $config->setBrandTextColor($data['brandTextColor'] ?? null);
 
         return $config;
     }

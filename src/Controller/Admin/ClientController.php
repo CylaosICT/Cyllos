@@ -390,6 +390,10 @@ class ClientController extends AbstractController
                 'webhookSecret' => $form->get('webhookSecret')->getData() ?: $this->wizardState->stripeWebhookSecret(),
                 'minAmount' => $config->getMinAmount(),
                 'maxAmount' => $config->getMaxAmount(),
+                'brandPrimaryColor' => $config->getBrandPrimaryColor(),
+                'brandBackgroundColor' => $config->getBrandBackgroundColor(),
+                'brandSurfaceColor' => $config->getBrandSurfaceColor(),
+                'brandTextColor' => $config->getBrandTextColor(),
             ]);
 
             return $this->redirectToRoute('admin_client_new_cyclos');
