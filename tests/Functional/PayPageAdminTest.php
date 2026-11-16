@@ -48,13 +48,25 @@ class PayPageAdminTest extends WebTestCase
         return '/admin/clients/' . $this->client->getId() . '/page-paiement';
     }
 
+    public function testClientPageLinksToThePaletteEditor(): void
+    {
+        $this->httpClient->request('GET', '/admin/clients/' . $this->client->getId());
+
+        self::assertResponseIsSuccessful();
+        self::assertSelectorExists('a[href="' . $this->url() . '"]');
+        self::assertSelectorTextContains('body', 'Modifier la palette et le style');
+
+        $this->httpClient->request('GET', '/admin/clients');
+        self::assertSelectorExists('a[href="' . $this->url() . '"]');
+    }
+
     public function testSavesLookWordingAndFlow(): void
     {
         $crawler = $this->httpClient->request('GET', $this->url());
         self::assertResponseIsSuccessful();
         // The colour picker: ready-made palettes and one text field per colour for the controller to drive.
         self::assertSelectorExists('[data-controller="pay-palette"]');
-        self::assertGreaterThanOrEqual(8, $crawler->filter('.pay-palette__swatch')->count());
+        self::assertGreaterThanOrEqual(30, $crawler->filter('.pay-palette__swatch')->count());
         self::assertCount(4, $crawler->filter('input[data-pay-palette-target]:not([type=color])'));
 
         $form = $crawler->selectButton('Enregistrer')->form();

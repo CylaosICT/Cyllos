@@ -14,7 +14,7 @@ export default class extends Controller {
     static targets = [
         'primary', 'background', 'surface', 'text',
         'primaryPicker', 'backgroundPicker', 'surfacePicker', 'textPicker',
-        'preview', 'message',
+        'preview', 'message', 'swatch', 'filterButton',
     ];
     static values = { logo: String };
 
@@ -29,6 +29,15 @@ export default class extends Controller {
         const d = event.currentTarget.dataset;
         this.set({ primary: d.primary, background: d.background, surface: d.surface, text: d.text });
         this.say(`Palette « ${d.name} » appliquée.`);
+    }
+
+    /** Shows only the dark / light palettes (or all of them). */
+    filter(event) {
+        const mode = event.currentTarget.dataset.mode;
+        this.filterButtonTargets.forEach((b) => b.classList.toggle('is-on', b === event.currentTarget));
+        this.swatchTargets.forEach((s) => {
+            s.hidden = mode !== 'all' && s.dataset.mode !== mode;
+        });
     }
 
     /** A native picker changed: copy its value into the text field. */
@@ -105,6 +114,16 @@ export default class extends Controller {
             }
         }
         this.renderPreview();
+        this.markActivePalette();
+    }
+
+    /** Highlights the palette matching the four current colours, if any. */
+    markActivePalette() {
+        const now = ['primary', 'background', 'surface', 'text'].map((f) => this.valid(this.targetFor(f).value));
+        this.swatchTargets.forEach((s) => {
+            const d = s.dataset;
+            s.classList.toggle('is-active', [d.primary, d.background, d.surface, d.text].every((c, i) => c === now[i]));
+        });
     }
 
     /** Same derivation rules as cyllos-pay's PayClient::themeCss(). */
