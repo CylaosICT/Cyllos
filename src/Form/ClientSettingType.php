@@ -27,20 +27,20 @@ class ClientSettingType extends AbstractType
                 'row_attr' => ['class' => 'form-row--span2'],
             ])
             ->add('mailRecipient', EmailType::class, [
-                'label' => 'Mail principal',
-                'help' => 'Adresse recevant les alertes techniques (et les notifications de paiement si activées ci-dessous).',
+                'label' => 'E-mail de contact',
+                'help' => 'Adresse unique du client : alertes techniques, notifications de paiement (si activées ci-dessous) et pré-remplissage du premier compte utilisateur.',
                 'row_attr' => ['class' => 'form-row--span2'],
             ])
             ->add('notifySuccessOnPayment', CheckboxType::class, [
                 'label' => 'Notification de paiement réussi',
                 'required' => false,
-                'help' => "Envoie un e-mail à l'adresse de contact du client (voir Informations) à chaque paiement automatique réussi.",
+                'help' => "Envoie un e-mail à l'e-mail de contact ci-dessus à chaque paiement automatique réussi.",
                 'row_attr' => ['class' => 'form-row--span2'],
             ])
             ->add('notifyFailureOnPayment', CheckboxType::class, [
                 'label' => 'Notification de paiement en échec',
                 'required' => false,
-                'help' => "Envoie un e-mail à l'adresse de contact du client (voir Informations) à chaque paiement automatique en échec.",
+                'help' => "Envoie un e-mail à l'e-mail de contact ci-dessus à chaque paiement automatique en échec.",
                 'row_attr' => ['class' => 'form-row--span2'],
             ]);
     }

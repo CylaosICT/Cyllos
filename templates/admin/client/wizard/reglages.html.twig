@@ -7,7 +7,7 @@
 {% block page_title %}Réglages{% endblock %}
 
 {% block body %}
-    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 4} %}
+    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 5, provider: provider} %}
 
     <div class="card">
         {{ form_start(form) }}

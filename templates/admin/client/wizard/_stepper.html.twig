@@ -1,7 +1,9 @@
 {% import 'components/icons.html.twig' as icons %}
+{% set providerValue = provider is defined and provider is not null ? provider.value : null %}
 {% set steps = [
     {label: 'Informations', route: 'admin_client_new'},
-    {label: 'HelloAsso', route: 'admin_client_new_helloasso'},
+    {label: 'Prestataire', route: 'admin_client_new_provider'},
+    {label: providerValue == 'stripe' ? 'Stripe' : (providerValue == 'helloasso' ? 'HelloAsso' : 'Configuration'), route: providerValue == 'stripe' ? 'admin_client_new_stripe' : 'admin_client_new_helloasso'},
     {label: 'Cyclos', route: 'admin_client_new_cyclos'},
     {label: 'Réglages', route: 'admin_client_new_settings'},
 ] %}

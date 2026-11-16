@@ -31,6 +31,18 @@ services:
         arguments:
             $httpClient: '@helloasso.client'
 
+    App\Integration\Stripe\StripeClient:
+        arguments:
+            $httpClient: '@stripe.client'
+
+    App\Payment\CheckoutService:
+        arguments:
+            $paySiteBaseUrl: '%env(PAY_SITE_BASE_URL)%'
+
+    App\Controller\InternalCheckoutController:
+        arguments:
+            $internalSecret: '%env(PAY_INTERNAL_SECRET)%'
+
     App\Integration\Cyclos\CyclosClient:
         arguments:
             $httpClient: '@cyclos.client'
@@ -64,3 +76,12 @@ services:
     App\Deployment\DeploymentRunner:
         arguments:
             $projectDir: '%kernel.project_dir%'
+
+when@test:
+    services:
+        # Public so functional tests can swap it for a double (container->set()).
+        App\Payment\CheckoutService:
+            autowire: true
+            public: true
+            arguments:
+                $paySiteBaseUrl: '%env(PAY_SITE_BASE_URL)%'

@@ -146,10 +146,12 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
             <p>
                 Le tenant. Porte un nom, un <code>slug</code> unique (utilisé dans l'URL du
                 webhook et pour l'identifier dans les URLs admin), un statut actif/inactif, un
-                <code>contactEmail</code> optionnel, une relation one-to-many vers
-                <code>HelloAssoConfig</code> (un client peut avoir plusieurs formulaires, voir plus
-                bas) et deux relations one-to-one : <code>CyclosConfig</code>,
-                <code>ClientSetting</code>. Un client doit être désactivé avant de pouvoir être
+                <code>paymentProvider</code> (<code>helloasso</code> ou <code>stripe</code>, choisi
+                à la création dans le wizard, étape 2), une relation one-to-many vers
+                <code>HelloAssoConfig</code> (un client HelloAsso peut avoir plusieurs formulaires, voir plus
+                bas) et trois relations one-to-one : <code>StripeConfig</code> (clients Stripe
+                uniquement : clé API et secret de webhook chiffrés via <code>SecretEncryptor</code>,
+                bornes de montant), <code>CyclosConfig</code>, <code>ClientSetting</code>. Un client doit être désactivé avant de pouvoir être
                 supprimé (garde-fou dans
                 <code>ClientController::delete()</code>) ; la suppression efface aussi ses
                 paiements, ses comptes utilisateurs, ses règles <code>EmailAlias</code> et son logo
@@ -170,7 +172,8 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
                 </p>
             </div>
             <p>
-                <code>contactEmail</code> est l'adresse de contact du client en tant
+                <code>ClientSetting::mailRecipient</code> (« E-mail de contact » dans les Réglages) est
+                l'unique adresse de contact du client en tant
                 qu'organisation — distincte des emails des comptes utilisateurs
                 (<code>User::email</code>), qui appartiennent à des personnes précises et peuvent
                 changer indépendamment. Deux usages : c'est le destinataire des notifications de
@@ -241,9 +244,9 @@ protected function voteOnAttribute(string $attribute, mixed $subject, TokenInter
                 <tbody>
                     <tr><td>paymentCyclosEnabled</td><td>Si faux, les paiements passent par <code>system/payments/preview</code> (aucun mouvement réel) plutôt que <code>system/payments</code></td></tr>
                     <tr><td>paymentAutomaticEnabled</td><td>Si faux, tout paiement reçu reste au statut <code>Todo</code> en attente d'un crédit manuel</td></tr>
-                    <tr><td>mailRecipient</td><td>Destinataire des alertes techniques (retard, montant trop élevé, etc.)</td></tr>
-                    <tr><td>notifySuccessOnPayment</td><td>Envoie un e-mail à <code>Client::contactEmail</code> à chaque paiement crédité avec succès</td></tr>
-                    <tr><td>notifyFailureOnPayment</td><td>Envoie un e-mail à <code>Client::contactEmail</code> à chaque échec de crédit</td></tr>
+                    <tr><td>mailRecipient</td><td>E-mail de contact unique du client : alertes techniques (retard, montant trop élevé, etc.) et notifications de paiement</td></tr>
+                    <tr><td>notifySuccessOnPayment</td><td>Envoie un e-mail à <code>mailRecipient</code> à chaque paiement crédité avec succès</td></tr>
+                    <tr><td>notifyFailureOnPayment</td><td>Envoie un e-mail à <code>mailRecipient</code> à chaque échec de crédit</td></tr>
                 </tbody>
             </table>
             <p class="text-sm text-muted">
@@ -789,7 +792,7 @@ public function record(
         <section id="notifications" class="docs-section" data-docs-toc-target="section">
             <h2>Notifications par e-mail</h2>
             <p>
-                Deux notifications distinctes envoyées à <code>Client::contactEmail</code> (jamais
+                Deux notifications distinctes envoyées à <code>ClientSetting::mailRecipient</code> (jamais
                 à un compte utilisateur — voir <a href="#entite-client" data-docs-toc-target="link">Client</a>).
                 Les deux réglages sont exposés à deux endroits qui écrivent sur les mêmes colonnes
                 de <code>ClientSetting</code> : la fiche client côté admin (bloc "Réglages",
@@ -805,9 +808,8 @@ public function record(
                 <li><strong>Notif. paiement en échec</strong> (<code>ClientSetting::notifyFailureOnPayment</code>) — un e-mail à chaque tentative de crédit échouée.</li>
             </ul>
             <p>
-                Les deux sont désactivables indépendamment et n'envoient rien si
-                <code>contactEmail</code> n'est pas renseigné, même si le réglage correspondant
-                est activé (<code>PaymentProcessor</code> vérifie les deux conditions). Le contenu
+                Les deux sont désactivables indépendamment
+                (<code>PaymentProcessor</code> vérifie le réglage correspondant avant d'envoyer). Le contenu
                 de l'e-mail d'échec reste volontairement générique côté client — pas de détail
                 d'erreur technique interne, qui reste consultable uniquement dans
                 <a href="#journal" data-docs-toc-target="link">le journal d'activité</a> côté admin.
@@ -815,7 +817,7 @@ public function record(
             <div class="docs-note">
                 {{ icons.render('inbox') }}
                 <p>
-                    Si <code>contactEmail</code> n'est pas renseigné, la carte sur
+                    Si <code>mailRecipient</code> est vide, la carte sur
                     <code>/settings</code> affiche un avertissement explicite au client plutôt que
                     de le laisser cocher des cases qui n'auront silencieusement aucun effet.
                 </p>

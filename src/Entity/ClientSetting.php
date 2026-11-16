@@ -25,8 +25,9 @@ class ClientSetting
     private bool $paymentAutomaticEnabled = false;
 
     /**
-     * Primary email for this client: where technical alerts and (if enabled)
-     * payment notifications are sent.
+     * The client's single contact email: where technical alerts and (if
+     * enabled) payment notifications are sent, and the address pre-filled on
+     * the client's first user account.
      */
     #[ORM\Column(length: 255)]
     #[Assert\NotBlank]
@@ -34,8 +35,8 @@ class ClientSetting
     private string $mailRecipient = '';
 
     /**
-     * Whether to email the client (at Client::contactEmail, not mailRecipient)
-     * for each successful / failed automatic payment. Two independent toggles
+     * Whether to email the client (at mailRecipient) for each successful /
+     * failed automatic payment. Two independent toggles
      * on purpose — a client may want to know about failures without being
      * emailed for every single successful credit, or vice versa.
      */

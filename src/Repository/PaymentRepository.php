@@ -27,6 +27,14 @@ class PaymentRepository extends ServiceEntityRepository
         ]);
     }
 
+    public function findOneByClientAndReference(Client $client, string $reference): ?Payment
+    {
+        return $this->findOneBy([
+            'client' => $client,
+            'reference' => $reference,
+        ]);
+    }
+
     /**
      * Whether any payment references this config — a config with history can
      * only be deactivated, never deleted (see ClientController::deleteHelloAssoConfig()).
@@ -106,6 +114,7 @@ class PaymentRepository extends ServiceEntityRepository
         $result = $this->createQueryBuilder('p')
             ->select('p.helloAssoPaymentId')
             ->andWhere('p.client = :client')
+            ->andWhere('p.helloAssoPaymentId IS NOT NULL')
             ->setParameter('client', $client)
             ->getQuery()
             ->getScalarResult();
@@ -368,7 +377,7 @@ class PaymentRepository extends ServiceEntityRepository
             ->leftJoin('p.helloAssoConfig', 'hac')
             ->addSelect('hac')
             ->andWhere(
-                'p.payerFirstName LIKE :q OR p.payerLastName LIKE :q OR p.email LIKE :q OR p.payerEmail LIKE :q OR hac.label LIKE :q OR c.name LIKE :q'
+                'p.payerFirstName LIKE :q OR p.payerLastName LIKE :q OR p.email LIKE :q OR p.payerEmail LIKE :q OR hac.label LIKE :q OR c.name LIKE :q OR p.reference LIKE :q'
                 . " OR CONCAT(p.payerFirstName, ' ', p.payerLastName) LIKE :q"
                 . " OR CONCAT(p.payerLastName, ' ', p.payerFirstName) LIKE :q",
             )

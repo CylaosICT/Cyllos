@@ -8,3 +8,24 @@ framework:
             policy: 'token_bucket'
             limit: 30
             rate: { interval: '1 minute', amount: 30 }
+
+        # Payment-site -> Cyllos checkout endpoint (HMAC-authenticated). Keyed on
+        # the payer's IP, then on the e-mail they typed, so the account-existence
+        # pre-check can't be used to enumerate Cyclos accounts.
+        internal_checkout:
+            policy: 'sliding_window'
+            limit: 20
+            interval: '10 minutes'
+        internal_checkout_email:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '10 minutes'
+        # "Confirm your account" step: a bit more room (typos), still bounded.
+        internal_account_check:
+            policy: 'sliding_window'
+            limit: 30
+            interval: '10 minutes'
+        internal_account_check_email:
+            policy: 'sliding_window'
+            limit: 10
+            interval: '10 minutes'

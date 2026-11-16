@@ -36,11 +36,11 @@
                     {% for payment in payments %}
                         {% set hasAlias = aliasedEmails[payment.client.id ~ '|' ~ payment.payerEmail] is defined %}
                         <tr>
-                            <td class="cell-muted" title="Formulaire {{ payment.helloAssoConfig.active ? 'actif' : 'désactivé' }}">
-                                <span class="dot {{ payment.helloAssoConfig.active ? 'dot--active' : 'dot--danger' }}"></span>
-                                {{ payment.helloAssoConfig.label }}
+                            <td class="cell-muted" title="Formulaire {{ payment.sourceActive ? 'actif' : 'désactivé' }}">
+                                <span class="dot {{ payment.sourceActive ? 'dot--active' : 'dot--danger' }}"></span>
+                                {{ payment.sourceLabel }}
                             </td>
-                            <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
+                            <td class="cell-muted">{{ payment.reference }}</td>
                             <td>{{ payment.paymentDate|date('d/m/Y H:i') }}</td>
                             <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €</td>
                             <td>{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>

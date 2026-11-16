@@ -103,12 +103,6 @@ parameters:
 			path: src/Entity/Payment.php
 
 		-
-			message: '#^Property App\\Entity\\Payment\:\:\$helloAssoConfig type mapping mismatch\: property can contain App\\Entity\\HelloAssoConfig\|null but database expects App\\Entity\\HelloAssoConfig\.$#'
-			identifier: doctrine.associationType
-			count: 1
-			path: src/Entity/Payment.php
-
-		-
 			message: '#^Class App\\Form\\AdminUserType extends generic class Symfony\\Component\\Form\\AbstractType but does not specify its types\: TData$#'
 			identifier: missingType.generics
 			count: 1

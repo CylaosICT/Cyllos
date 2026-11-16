@@ -14,8 +14,28 @@ propre connexion Cyclos.
 ### Modèle multi-tenant
 
 Une seule instance de Cyllos gère tous les clients Cylaos. Chaque `Client` porte
-un slug unique et possède sa propre configuration :
-- `HelloAssoConfig` (un ou plusieurs par client) : identifiants API HelloAsso
+un slug unique et possède sa propre configuration. Le prestataire de paiement
+(`paymentProvider` : HelloAsso ou Stripe) est choisi à la création du client,
+à l'étape 2 de l'assistant, et détermine la configuration demandée ensuite :
+- `StripeConfig` (clients Stripe, une par client) : clé API Stripe (restreinte
+  `rk_…` recommandée, ou `sk_…`) et secret de signature du webhook (`whsec_…`),
+  tous deux chiffrés en base et jamais réaffichés (seul un indice « mode +
+  4 derniers caractères » est visible), plus les montants minimum/maximum par
+  paiement. Les paiements arrivent directement sur le compte Stripe du client.
+  Flux : le site de paiement séparé (`cyllos-pay`, à venir) appelle
+  `POST /internal/account-check` (étape « confirmer le compte », sans paiement) puis
+  `POST /internal/checkout` (signé HMAC-SHA256 de `{timestamp}.{corps}` avec
+  `PAY_INTERNAL_SECRET`, en-têtes `X-Cyllos-Timestamp` / `X-Cyllos-Signature`,
+  ±300 s) avec `{clientSlug, email, amountCents, clientIp}` ; Cyllos vérifie
+  le compte Cyclos, crée une `CheckoutOrder` puis une session Stripe Checkout
+  (pleine page) et renvoie l'URL de redirection. Stripe notifie ensuite
+  `POST /webhook/stripe/{slug}` (signature `Stripe-Signature` vérifiée) ; le
+  paiement est enregistré (montant et devise contrôlés, idempotent) puis crédité
+  sur Cyclos comme pour HelloAsso. Remboursements et litiges sont journalisés
+  pour suivi manuel. Variables d'environnement : `PAY_SITE_BASE_URL` (URL du
+  site de paiement, pour les pages de retour) et `PAY_INTERNAL_SECRET`
+  (vide = endpoint interne désactivé, 503).
+- `HelloAssoConfig` (clients HelloAsso, un ou plusieurs par client) : identifiants API HelloAsso
   (client ID/secret chiffré), organisation, formulaire ciblé, montant maximum
   autorisé par paiement, libellé et statut actif/inactif. Un client garde
   toujours au moins un formulaire actif ; un formulaire désactivé ne peut être
@@ -26,9 +46,10 @@ un slug unique et possède sa propre configuration :
   passe (chiffré), groupes Cyclos "pro"/"particulier" et types d'émission
   associés ;
 - `ClientSetting` : paiements Cyclos activés ou non (mode "aperçu" sinon),
-  crédit automatique activé ou non, email d'alerte technique, et deux
-  notifications indépendantes envoyées à `Client::contactEmail` (l'adresse de
-  contact de l'organisation, distincte des comptes utilisateurs) : à chaque
+  crédit automatique activé ou non, e-mail de contact du client (`mailRecipient`,
+  adresse unique : alertes techniques, pré-remplissage du premier compte
+  utilisateur) et deux notifications indépendantes envoyées à cette même
+  adresse (distincte des comptes utilisateurs) : à chaque
   paiement réussi (`notifySuccessOnPayment`) et à chaque échec
   (`notifyFailureOnPayment`). Réglables depuis la fiche client côté admin,
   mais aussi en libre-service par le client lui-même depuis `/settings`
@@ -41,7 +62,7 @@ un slug unique et possède sa propre configuration :
   sans qu'il faille corriger le problème à chaque fois. Gérées depuis la
   fiche client (bloc "Correspondances d'e-mail").
 
-Les secrets (`clientSecret` HelloAsso, mot de passe Cyclos) sont chiffrés en
+Les secrets (`clientSecret` HelloAsso, clés Stripe, mot de passe Cyclos) sont chiffrés en
 base avec `APP_ENCRYPTION_KEY` via `SecretEncryptor` — jamais stockés en clair.
 
 ### Cycle de vie d'un paiement
@@ -297,8 +318,11 @@ php -S 127.0.0.1:8000 -t public
 
 ## Configurer un client
 
-Depuis `/admin/clients`, créer un client avec :
-- son premier formulaire HelloAsso (client ID/secret, organisation, formulaire) ;
+Depuis `/admin/clients`, l'assistant de création (5 étapes : informations →
+prestataire → configuration du prestataire → Cyclos → réglages) demande :
+- le prestataire de paiement, via deux grandes tuiles Stripe / HelloAsso ;
+- soit son premier formulaire HelloAsso (client ID/secret, organisation, formulaire),
+  soit ses clés Stripe (clé API, secret de webhook, bornes de montant) ;
 - sa connexion Cyclos (URL, utilisateur technique, groupes/émissions) ;
 - ses réglages (paiements Cyclos actifs, mode automatique, email de notification).
 

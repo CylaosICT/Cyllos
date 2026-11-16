@@ -7,7 +7,7 @@
 {% block page_title %}Configuration HelloAsso{% endblock %}
 
 {% block body %}
-    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 2} %}
+    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 3, provider: provider} %}
 
     <div class="card">
         {{ form_start(form) }}
@@ -27,7 +27,7 @@
                 </div>
             </div>
             <div class="form-footer">
-                <a class="btn btn--ghost" href="{{ path('admin_client_new') }}">← Retour</a>
+                <a class="btn btn--ghost" href="{{ path('admin_client_new_provider') }}">← Retour</a>
                 <button class="btn" type="submit">Continuer</button>
             </div>
         {{ form_end(form) }}

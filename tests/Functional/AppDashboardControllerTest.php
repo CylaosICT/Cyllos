@@ -24,7 +24,7 @@ class AppDashboardControllerTest extends WebTestCase
         $this->httpClient = static::createClient();
         $this->entityManager = self::getContainer()->get(EntityManagerInterface::class);
 
-        foreach (['Payment', 'EmailAlias', 'User', 'ClientSetting', 'CyclosConfig', 'HelloAssoConfig', 'Client'] as $entity) {
+        foreach (['Payment', 'EmailAlias', 'User', 'ClientSetting', 'CyclosConfig', 'CheckoutOrder', 'StripeConfig', 'HelloAssoConfig', 'Client'] as $entity) {
             $this->entityManager->createQuery("DELETE FROM App\\Entity\\$entity")->execute();
         }
     }

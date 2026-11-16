@@ -37,6 +37,8 @@ class HelloAssoConfigAdminTest extends WebTestCase
         $this->entityManager->createQuery('DELETE FROM App\Entity\Payment')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\ClientSetting')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\CyclosConfig')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\CheckoutOrder')->execute();
+        $this->entityManager->createQuery('DELETE FROM App\Entity\StripeConfig')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\HelloAssoConfig')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\User')->execute();
         $this->entityManager->createQuery('DELETE FROM App\Entity\Client')->execute();

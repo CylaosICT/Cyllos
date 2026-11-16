@@ -250,15 +250,15 @@ class PaymentProcessor
             $payment->setStatus(PaymentStatus::SuccessAuto);
             $this->entityManager->flush();
 
-            if ($setting->isNotifySuccessOnPayment() && $client->getContactEmail() !== null) {
-                $this->mailer->sendForClient($client, $client->getContactEmail(), 'success', $this->emailParams($client, $payment));
+            if ($setting->isNotifySuccessOnPayment()) {
+                $this->mailer->sendForClient($client, $setting->getMailRecipient(), 'success', $this->emailParams($client, $payment));
             }
 
             return new PaymentProcessingResult(PaymentStatus::SuccessAuto, $result->errors);
         }
 
-        if ($setting->isNotifyFailureOnPayment() && $client->getContactEmail() !== null) {
-            $this->mailer->sendForClient($client, $client->getContactEmail(), 'failure', $this->emailParams($client, $payment));
+        if ($setting->isNotifyFailureOnPayment()) {
+            $this->mailer->sendForClient($client, $setting->getMailRecipient(), 'failure', $this->emailParams($client, $payment));
         }
 
         return $result;
@@ -307,7 +307,7 @@ class PaymentProcessor
     private function creditCyclosAccount(Client $client, Payment $payment): PaymentProcessingResult
     {
         if ($payment->getStatus()->isSuccessful()) {
-            $this->logger->info('Payment {id} already credited', ['id' => $payment->getHelloAssoPaymentId()]);
+            $this->logger->info('Payment {id} already credited', ['id' => $payment->getReference()]);
 
             return new PaymentProcessingResult($payment->getStatus(), ['Paiement déjà effectué dans Cyclos']);
         }
@@ -326,7 +326,13 @@ class PaymentProcessor
         $user = $this->cyclosClient->findUserByEmail($cyclosConfig, $email);
 
         if ($user === null) {
-            $alternativeEmail = $this->helloAssoClient->getAlternativeEmail($haConfig, $payment->getHelloAssoPaymentId());
+            // The HelloAsso "alternative e-mail" fallback only exists for HelloAsso
+            // payments; a Stripe payment's e-mail was checked against Cyclos before
+            // the payer was even sent to Stripe, so there is nothing else to try.
+            $helloAssoPaymentId = $payment->getHelloAssoPaymentId();
+            $alternativeEmail = ($haConfig !== null && $helloAssoPaymentId !== null)
+                ? $this->helloAssoClient->getAlternativeEmail($haConfig, $helloAssoPaymentId)
+                : null;
 
             if ($alternativeEmail === null || !str_contains($alternativeEmail, '@')) {
                 return $this->fail($payment, "Erreur pendant la récupération de l'utilisateur dans Cyclos");
@@ -349,7 +355,7 @@ class PaymentProcessor
         $prefix = ($customPrefix !== null && $customPrefix !== '')
             ? $customPrefix
             : CyclosClient::PAYMENT_DESCRIPTION_PREFIX;
-        $description = $prefix . $payment->getHelloAssoPaymentId();
+        $description = $prefix . $payment->getReference();
 
         // Also look for the default/legacy wording: a client that switched its
         // description prefix must not get a payment credited twice because the
@@ -357,7 +363,7 @@ class PaymentProcessor
         $duplicateCandidates = array_values(array_unique([
             $description,
             ...array_map(
-                static fn (string $legacyPrefix): string => $legacyPrefix . $payment->getHelloAssoPaymentId(),
+                static fn (string $legacyPrefix): string => $legacyPrefix . $payment->getReference(),
                 [CyclosClient::PAYMENT_DESCRIPTION_PREFIX, ...CyclosClient::LEGACY_PAYMENT_DESCRIPTION_PREFIXES],
             ),
         ]));
@@ -425,7 +431,7 @@ class PaymentProcessor
         try {
             $this->entityManager->flush();
         } catch (UniqueConstraintViolationException) {
-            $this->logger->debug('Payment {id} was inserted concurrently, ignoring the duplicate', ['id' => $payment->getHelloAssoPaymentId()]);
+            $this->logger->debug('Payment {id} was inserted concurrently, ignoring the duplicate', ['id' => $payment->getReference()]);
 
             return null;
         }
@@ -457,11 +463,11 @@ class PaymentProcessor
             : ($client->getCustomization()?->getPreviewModeLabel() ?? EmailComposer::DEFAULT_PREVIEW_MODE_LABEL);
 
         return [
-            '%id%' => $payment->getHelloAssoPaymentId(),
+            '%id%' => $payment->getReference(),
             '%amount%' => \sprintf('%.2f', $payment->getAmount()),
             '%payer%' => trim($payment->getPayerFirstName() . ' ' . $payment->getPayerLastName()),
             '%payer_email%' => $payment->getPayerEmail(),
-            '%form%' => $payment->getHelloAssoConfig()->getLabel(),
+            '%form%' => $payment->getSourceLabel(),
             '%date%' => $payment->getPaymentDate()->format('d/m/Y'),
             '%client%' => $client->getName(),
             '%mode%' => $mode,

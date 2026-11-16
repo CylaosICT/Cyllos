@@ -21,10 +21,12 @@
 {% endblock %}
 {% block page_actions %}
     <a class="btn btn--secondary" href="{{ path('admin_payment_list', {client: client.id}) }}">{{ icons.render('payments') }} Paiements</a>
-    <form method="post" action="{{ path('admin_client_fetch', {id: client.id}) }}">
-        <input type="hidden" name="_token" value="{{ csrf_token('client_fetch_' ~ client.id) }}">
-        <button class="btn" type="submit">{{ icons.render('sync') }} Synchro HelloAsso</button>
-    </form>
+    {% if client.usesHelloAsso %}
+        <form method="post" action="{{ path('admin_client_fetch', {id: client.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('client_fetch_' ~ client.id) }}">
+            <button class="btn" type="submit">{{ icons.render('sync') }} Synchro HelloAsso</button>
+        </form>
+    {% endif %}
 {% endblock %}
 
 {% block body %}
@@ -41,12 +43,39 @@
                 <dl class="kv-list">
                     <div class="kv-row"><dt>Nom</dt><dd>{{ client.name }}</dd></div>
                     <div class="kv-row"><dt>Slug</dt><dd><code>{{ client.slug }}</code></dd></div>
-                    <div class="kv-row"><dt>E-mail de contact</dt><dd>{{ client.contactEmail ?: '—' }}</dd></div>
+                    <div class="kv-row"><dt>Prestataire de paiement</dt><dd>{{ client.paymentProvider.label }}</dd></div>
                     <div class="kv-row"><dt>Statut</dt><dd>{{ client.active ? 'Actif' : 'Inactif' }}</dd></div>
                     <div class="kv-row"><dt>Créé le</dt><dd>{{ client.createdAt|date('d/m/Y') }}</dd></div>
                 </dl>
             </div>
         </div>
+
+        {% if client.usesStripe and client.stripeConfig %}
+            {% set stripe = client.stripeConfig %}
+            <div class="summary-card">
+                <div class="summary-card__header">
+                    <div class="summary-card__title">
+                        <span class="summary-card__icon">{{ icons.render('inbox') }}</span>
+                        <span class="summary-card__title-stack">
+                            <span class="summary-card__title-eyebrow">Stripe</span>
+                            <span>
+                                Compte Stripe
+                                <span class="status-pill"><span class="dot {{ stripe.liveMode ? 'dot--active' : 'dot--inactive' }}"></span> {{ stripe.liveMode ? 'Mode live' : 'Mode test' }}</span>
+                            </span>
+                        </span>
+                    </div>
+                    <a class="btn btn--ghost btn--sm" href="{{ path('admin_client_edit_stripe', {id: client.id}) }}">Modifier</a>
+                </div>
+                <div class="summary-card__body">
+                    <dl class="kv-list">
+                        <div class="kv-row"><dt>Clé API</dt><dd><code>{{ stripe.secretKeyHint }}</code></dd></div>
+                        <div class="kv-row"><dt>Secret webhook</dt><dd>Enregistré (chiffré)</dd></div>
+                        <div class="kv-row"><dt>Montant min</dt><dd>{{ stripe.minAmount }} €</dd></div>
+                        <div class="kv-row"><dt>Montant max</dt><dd>{{ stripe.maxAmount }} €</dd></div>
+                    </dl>
+                </div>
+            </div>
+        {% endif %}
 
         {% for haConfig in client.helloAssoConfigs %}
             <div class="summary-card">
@@ -93,12 +122,14 @@
             </div>
         {% endfor %}
 
-        <div class="summary-card summary-card--add">
-            <div class="summary-card__body summary-card__body--center">
-                <p class="text-muted text-sm">Un formulaire distinct pour un autre public (ex. professionnels) ?</p>
-                <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_new_helloasso_config', {id: client.id}) }}">{{ icons.render('plus') }} Ajouter un formulaire HelloAsso</a>
+        {% if client.usesHelloAsso %}
+            <div class="summary-card summary-card--add">
+                <div class="summary-card__body summary-card__body--center">
+                    <p class="text-muted text-sm">Un formulaire distinct pour un autre public (ex. professionnels) ?</p>
+                    <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_new_helloasso_config', {id: client.id}) }}">{{ icons.render('plus') }} Ajouter un formulaire HelloAsso</a>
+                </div>
             </div>
-        </div>
+        {% endif %}
 
         <div class="summary-card">
             <div class="summary-card__header">
@@ -130,7 +161,7 @@
                 <dl class="kv-list">
                     <div class="kv-row"><dt>Paiements Cyclos</dt><dd>{{ client.setting.paymentCyclosEnabled ? 'Activés' : 'Désactivés (aperçu)' }}</dd></div>
                     <div class="kv-row"><dt>Mode automatique</dt><dd>{{ client.setting.paymentAutomaticEnabled ? 'Activé' : 'Désactivé' }}</dd></div>
-                    <div class="kv-row"><dt>Mail principal</dt><dd>{{ client.setting.mailRecipient }}</dd></div>
+                    <div class="kv-row"><dt>E-mail de contact</dt><dd>{{ client.setting.mailRecipient }}</dd></div>
                     <div class="kv-row"><dt>Notif. paiement réussi</dt><dd>{{ client.setting.notifySuccessOnPayment ? 'Activé' : 'Désactivé' }}</dd></div>
                     <div class="kv-row"><dt>Notif. paiement en échec</dt><dd>{{ client.setting.notifyFailureOnPayment ? 'Activé' : 'Désactivé' }}</dd></div>
                 </dl>
@@ -160,6 +191,7 @@
         </div>
     </div>
 
+    {% if client.usesHelloAsso %}
     <div class="card card--section" id="webhook-card">
         <div class="card__header">
             <div>
@@ -181,6 +213,35 @@
             </div>
         </div>
     </div>
+
+    {% elseif client.usesStripe %}
+    <div class="card card--section" id="webhook-card">
+        <div class="card__header">
+            <div>
+                <h2>URL de webhook Stripe</h2>
+                <p>À ajouter dans Stripe (Développeurs → Webhooks → Ajouter une destination) sur le compte du client. Le secret de signature (<code>whsec_…</code>) affiché par Stripe est celui à saisir dans la configuration Stripe ci-dessus.</p>
+            </div>
+        </div>
+        <div class="card__body">
+            {% set stripeWebhookUrl = absolute_url(path('webhook_stripe', {clientSlug: client.slug})) %}
+            <div class="copy-field" data-controller="copy">
+                <code class="copy-field__value" data-copy-target="source" title="{{ stripeWebhookUrl }}">{{ stripeWebhookUrl }}</code>
+                <button type="button" class="copy-field__btn" data-action="copy#copy" aria-label="Copier l'URL de webhook">
+                    {{ icons.render('copy') }} <span data-copy-target="button">Copier</span>
+                </button>
+            </div>
+            <p class="text-sm text-muted" style="margin-top:0.9rem;">
+                Événements à envoyer :
+                <code>checkout.session.completed</code>,
+                <code>checkout.session.async_payment_succeeded</code>,
+                <code>checkout.session.async_payment_failed</code>,
+                <code>checkout.session.expired</code>,
+                <code>charge.refunded</code>,
+                <code>charge.dispute.created</code>.
+            </p>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="card card--section">
         <div class="card__header">

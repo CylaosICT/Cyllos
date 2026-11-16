@@ -48,8 +48,8 @@
                     <tbody>
                         {% for payment in payments %}
                             <tr>
-                                <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
-                                <td class="cell-muted">{{ payment.helloAssoConfig.label }}</td>
+                                <td class="cell-muted">{{ payment.reference }}</td>
+                                <td class="cell-muted">{{ payment.sourceLabel }}</td>
                                 <td class="cell-primary">{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
                                 <td>{{ payment.email }}</td>
                                 <td>{{ payment.amount|number_format(2, ',', ' ') }} €</td>
