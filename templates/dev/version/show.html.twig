@@ -4,6 +4,11 @@
 {% block title %}Mises à jour - Cyllos{% endblock %}
 {% block content_width %}content--full{% endblock %}
 
+{% block stylesheets %}
+    {{ parent() }}
+    {% if paySite is defined and paySite is not null and paySite.running %}<meta http-equiv="refresh" content="4">{% endif %}
+{% endblock %}
+
 {% block page_title %}Mises à jour{% endblock %}
 {% block page_actions %}
     <a class="btn btn--secondary" href="{{ path('dev_version_show', {refresh: 1}) }}">{{ icons.render('sync') }} Vérifier maintenant</a>
@@ -73,6 +78,67 @@
                     {% endif %}
                 </div>
             </div>
+
+            {% if paySite is defined and paySite is not null %}
+                <div class="card" style="margin-top:1.5rem;">
+                    <div class="card__header">
+                        <div>
+                            <h2>Site de paiement (Cyllos-Pay)</h2>
+                            <p>Branche suivie : <code>{{ paySite.branch }}</code></p>
+                        </div>
+                        {% if paySite.running %}
+                            <span class="badge badge--waiting">{{ icons.render('sync') }} Mise à jour en cours…</span>
+                        {% elseif paySite.state == 'up_to_date' %}
+                            <span class="badge badge--success">{{ icons.render('check') }} À jour</span>
+                        {% elseif paySite.state == 'behind' %}
+                            <span class="badge badge--warning">En retard de {{ paySite.behindBy }} commit{{ paySite.behindBy > 1 ? 's' : '' }}</span>
+                        {% elseif paySite.state == 'ahead' %}
+                            <span class="badge badge--waiting">En avance de {{ paySite.aheadBy }} commit{{ paySite.aheadBy > 1 ? 's' : '' }}</span>
+                        {% else %}
+                            <span class="badge badge--todo">Indisponible</span>
+                        {% endif %}
+                    </div>
+                    <div class="card__body">
+                        <dl class="kv-list">
+                            <div class="kv-row">
+                                <dt>Commit déployé</dt>
+                                <dd>{% if paySite.localCommit %}<code>{{ paySite.localShort }}</code>{% else %}<span class="text-muted">inconnu</span>{% endif %}</dd>
+                            </div>
+                            <div class="kv-row">
+                                <dt>Dernier commit sur {{ paySite.branch }}</dt>
+                                <dd>
+                                    {% if paySite.remoteCommit %}
+                                        <code>{{ paySite.remoteShort }}</code>{% if paySite.remoteCommitDate %} · {{ paySite.remoteCommitDate|date('d/m/Y H:i') }}{% endif %}
+                                    {% else %}
+                                        <span class="text-muted">inconnu</span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                            <div class="kv-row">
+                                <dt>Dernière mise à jour lancée d'ici</dt>
+                                <dd>
+                                    {% if paySite.lastRun == 'ok' %}Réussie{% elseif paySite.lastRun == 'failed' %}<strong>Échec</strong> — voir le journal ci-dessous{% elseif paySite.lastRun == 'running' %}En cours{% else %}Aucune{% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+
+                        {% if paySite.errorMessage %}
+                            <div class="flash flash--error" style="margin-top:1rem;">{{ icons.render('x') }} {{ paySite.errorMessage }}</div>
+                        {% endif %}
+
+                        {% if paySite.log %}
+                            <pre class="deploy-result__pre" style="margin-top:1rem;">{{ paySite.log }}</pre>
+                        {% endif %}
+
+                        {% if is_granted('ROLE_DEVELOPER') and not paySite.running and paySite.state in ['behind', 'unknown'] and paySite.localCommit %}
+                            <form method="post" action="{{ path('dev_version_deploy_pay') }}" style="margin-top:1rem;" data-confirm-title="Mettre à jour le site de paiement" data-confirm-message="Le site de paiement va récupérer le code, installer les dépendances et vider son cache. Pensez à mettre d'abord à jour Cyllos si la version apporte une migration. Continuer ?" data-confirm-confirm-label="Mettre à jour">
+                                <input type="hidden" name="_token" value="{{ csrf_token('deploy_pay') }}">
+                                <button class="btn btn--danger" type="submit">{{ icons.render('arrow-right') }} Mettre à jour Cyllos-Pay</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
 
             <p class="text-sm text-muted" style="margin-top:1rem;">
                 Comparaison en lecture seule : rien n'est modifié ni téléchargé automatiquement.

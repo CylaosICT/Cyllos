@@ -354,6 +354,10 @@ php bin/console app:user:create client@example.com "mot-de-passe" --client=<slug
 
 Fiche client → **Personnaliser** : couleurs, style d'écriture (4), forme des coins (3), fond de page (dégradé animé, formes flottantes, uni), titre, texte d'introduction, libellé du bouton (`{montant}` est remplacé), message de succès, ligne d'aide, étape de confirmation facultative et montants rapides. Le logo est celui de la fiche client. Tout est facultatif et validé (liste blanche, couleurs `#RRGGBB`, texte brut) ; la vue `pay_client_view` (migration `Version20261116140000`) expose ces valeurs à cyllos-pay, qui les applique sans script ni style en ligne.
 
+### Mettre à jour le site de paiement depuis le back-office
+
+Page **Mises à jour** : une seconde carte « Site de paiement (Cyllos-Pay) » compare la version déployée sur le serveur du site B à GitHub et propose **Mettre à jour Cyllos-Pay**. Cyllos envoie une requête signée (HMAC, `PAY_INTERNAL_SECRET`, comme pour les paiements) à `PAY_SITE_BASE_URL/internal/update/*` ; le site B lance alors `deploy/self-update.sh` (git pull, composer install, vidage du cache) sous son propre utilisateur, en tâche de fond, et la page affiche l'avancement et le journal. Ordre à respecter : mettre à jour Cyllos d'abord (migrations), puis Cyllos-Pay.
+
 ## Tâches planifiées
 
 Trois tâches sont enregistrées via Symfony Scheduler dans
