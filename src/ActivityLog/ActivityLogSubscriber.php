@@ -134,7 +134,7 @@ class ActivityLogSubscriber
     {
         return match (true) {
             $entity instanceof Client => $entity->getName() . ' (#' . $entity->getId() . ')',
-            $entity instanceof Payment => 'Paiement #' . $entity->getHelloAssoPaymentId() . ' (' . $entity->getClient()->getName() . ')',
+            $entity instanceof Payment => 'Paiement #' . $entity->getReference() . ' (' . $entity->getClient()->getName() . ')',
             $entity instanceof User => $entity->getEmail(),
             default => (string) $entity->getId(),
         };

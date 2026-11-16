@@ -5,7 +5,6 @@ namespace App\Form;
 use App\Entity\Client;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
-use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -14,7 +13,7 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 /**
  * Step 1 of the client creation wizard / the "informations" edit page: the
- * client's identity, independent of its HelloAsso and Cyclos configuration.
+ * client's identity, independent of its payment provider and Cyclos configuration.
  */
 class ClientInfoType extends AbstractType
 {
@@ -28,14 +27,7 @@ class ClientInfoType extends AbstractType
             ->add('slug', TextType::class, [
                 'label' => 'Slug',
                 'attr' => ['placeholder' => 'ex : rollon'],
-                'help' => "Utilisé dans l'URL du webhook HelloAsso : /webhook/helloasso/{slug}",
-            ])
-            ->add('contactEmail', EmailType::class, [
-                'label' => 'E-mail de contact',
-                'required' => false,
-                'attr' => ['placeholder' => 'contact@client.example'],
-                'help' => 'Utilisé pour les notifications de paiement (voir Réglages) et pré-rempli automatiquement sur le tout premier compte utilisateur créé pour ce client.',
-                'row_attr' => ['class' => 'form-row--span2'],
+                'help' => 'Identifiant unique du client, utilisé dans les URL de webhook (/webhook/…/{slug}).',
             ])
             ->add('active', CheckboxType::class, [
                 'label' => 'Client actif',

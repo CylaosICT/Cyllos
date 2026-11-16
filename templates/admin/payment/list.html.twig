@@ -43,12 +43,12 @@
                         <tr>
                             <td><a href="{{ path('admin_client_show', {id: payment.client.id}) }}">{{ payment.client.name }}</a></td>
                             <td class="cell-muted">
-                                {{ payment.helloAssoConfig.label }}
-                                {% if not payment.helloAssoConfig.active %}
+                                {{ payment.sourceLabel }}
+                                {% if not payment.sourceActive %}
                                     <span class="status-pill"><span class="dot dot--inactive"></span> Désactivé</span>
                                 {% endif %}
                             </td>
-                            <td class="cell-muted">{{ payment.helloAssoPaymentId }}</td>
+                            <td class="cell-muted">{{ payment.reference }}</td>
                             <td>{{ payment.paymentDate|date('d/m/Y H:i') }}</td>
                             <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €</td>
                             <td>{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>

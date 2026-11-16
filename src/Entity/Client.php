@@ -61,13 +61,15 @@ class Client
     private ?string $logoFilename = null;
 
     /**
-     * The client's own contact email — distinct from ClientSetting::mailRecipient
-     * (internal ops/technical alerts). Used to send client-facing payment
-     * notifications, and to pre-fill the very first client user account created.
+     * Which payment service this client collects top-ups through. Chosen at
+     * creation (wizard step 2). HelloAsso clients use helloAssoConfigs,
+     * Stripe clients use stripeConfig.
      */
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\Email]
-    private ?string $contactEmail = null;
+    #[ORM\Column(length: 20, enumType: PaymentProvider::class)]
+    private PaymentProvider $paymentProvider = PaymentProvider::HelloAsso;
+
+    #[ORM\OneToOne(mappedBy: 'client', targetEntity: StripeConfig::class, cascade: ['persist', 'remove'])]
+    private ?StripeConfig $stripeConfig = null;
 
     /**
      * Ordered by id (creation order) rather than left to the database's
@@ -196,14 +198,39 @@ class Client
         return $this;
     }
 
-    public function getContactEmail(): ?string
+    public function getPaymentProvider(): PaymentProvider
     {
-        return $this->contactEmail;
+        return $this->paymentProvider;
     }
 
-    public function setContactEmail(?string $contactEmail): static
+    public function setPaymentProvider(PaymentProvider $paymentProvider): static
     {
-        $this->contactEmail = $contactEmail;
+        $this->paymentProvider = $paymentProvider;
+
+        return $this;
+    }
+
+    public function usesStripe(): bool
+    {
+        return $this->paymentProvider === PaymentProvider::Stripe;
+    }
+
+    public function usesHelloAsso(): bool
+    {
+        return $this->paymentProvider === PaymentProvider::HelloAsso;
+    }
+
+    public function getStripeConfig(): ?StripeConfig
+    {
+        return $this->stripeConfig;
+    }
+
+    public function setStripeConfig(?StripeConfig $stripeConfig): static
+    {
+        $this->stripeConfig = $stripeConfig;
+        if ($stripeConfig !== null && $stripeConfig->getClient() !== $this) {
+            $stripeConfig->setClient($this);
+        }
 
         return $this;
     }

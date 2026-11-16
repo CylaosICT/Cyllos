@@ -6,11 +6,13 @@ use App\Entity\Client;
 use App\Entity\ClientSetting;
 use App\Entity\CyclosConfig;
 use App\Entity\HelloAssoConfig;
+use App\Entity\PaymentProvider;
+use App\Entity\StripeConfig;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
- * Holds the in-progress state of the 4-step "new client" wizard across
+ * Holds the in-progress state of the 5-step "new client" wizard across
  * requests (session-backed), and hydrates transient entities from it so each
  * step's form can be pre-filled when the user navigates back and forth.
  */
@@ -70,6 +72,46 @@ class ClientWizardState
         $config->setFetchNbDays($data['fetchNbDays'] ?? 5);
 
         return $config;
+    }
+
+    public function provider(): ?PaymentProvider
+    {
+        $value = $this->all()['provider']['value'] ?? null;
+
+        return \is_string($value) ? PaymentProvider::tryFrom($value) : null;
+    }
+
+    public function stripeConfig(): StripeConfig
+    {
+        $config = new StripeConfig();
+        $data = $this->all()['stripe'] ?? [];
+        $config->setMinAmount($data['minAmount'] ?? 5);
+        $config->setMaxAmount($data['maxAmount'] ?? 250);
+
+        return $config;
+    }
+
+    /** Plaintext Stripe secrets captured during the wizard, applied (encrypted) at the final step. */
+    public function stripeSecretKey(): string
+    {
+        return $this->all()['stripe']['secretKey'] ?? '';
+    }
+
+    public function stripeWebhookSecret(): string
+    {
+        return $this->all()['stripe']['webhookSecret'] ?? '';
+    }
+
+    /**
+     * Whether the step holding the chosen provider's credentials is done.
+     */
+    public function hasProviderConfigStep(): bool
+    {
+        return match ($this->provider()) {
+            PaymentProvider::HelloAsso => $this->hasStep('helloAsso'),
+            PaymentProvider::Stripe => $this->hasStep('stripe'),
+            default => false,
+        };
     }
 
     public function cyclosConfig(): CyclosConfig

@@ -1,0 +1,43 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Nouveau client — Prestataire de paiement - Cyllos{% endblock %}
+{% block content_width %}content--full{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / Nouveau</div>{% endblock %}
+{% block page_title %}Prestataire de paiement{% endblock %}
+
+{% block body %}
+    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 2, provider: provider} %}
+
+    <div class="card">
+        <form method="post" action="{{ path('admin_client_new_provider') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('client_wizard_provider') }}">
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Comment ce client encaisse-t-il les alimentations de compte ?</h2>
+                <p class="text-sm text-muted" style="margin-bottom:1.5rem;">Ce choix détermine la configuration demandée à l'étape suivante. Il est enregistré pour le client.</p>
+
+                <div class="provider-picker">
+                    <button type="submit" name="provider" value="stripe" class="provider-tile provider-tile--stripe{{ selected is not null and selected.value == 'stripe' ? ' is-selected' : '' }}">
+                        <span class="provider-tile__logo">
+                            <img src="{{ asset('images/providers/stripe.svg') }}" alt="Stripe" height="44">
+                        </span>
+                        <span class="provider-tile__title">Stripe</span>
+                        <span class="provider-tile__text">Paiement par carte via la page Stripe Checkout, directement sur le compte Stripe du client.</span>
+                    </button>
+
+                    <button type="submit" name="provider" value="helloasso" class="provider-tile provider-tile--helloasso{{ selected is not null and selected.value == 'helloasso' ? ' is-selected' : '' }}">
+                        <span class="provider-tile__logo">
+                            <img src="{{ asset('images/providers/helloasso.svg') }}" alt="HelloAsso" height="44">
+                        </span>
+                        <span class="provider-tile__title">HelloAsso</span>
+                        <span class="provider-tile__text">Formulaire HelloAsso du client, notifié par webhook et rattrapé par synchronisation.</span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_new') }}">← Retour</a>
+                <span></span>
+            </div>
+        </form>
+    </div>
+{% endblock %}

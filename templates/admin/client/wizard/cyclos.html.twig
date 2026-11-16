@@ -7,7 +7,7 @@
 {% block page_title %}Configuration Cyclos{% endblock %}
 
 {% block body %}
-    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 3} %}
+    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 4, provider: provider} %}
 
     <div class="card">
         {{ form_start(form) }}
@@ -24,7 +24,7 @@
                 </div>
             </div>
             <div class="form-footer">
-                <a class="btn btn--ghost" href="{{ path('admin_client_new_helloasso') }}">← Retour</a>
+                <a class="btn btn--ghost" href="{{ path(provider is not null and provider.value == 'stripe' ? 'admin_client_new_stripe' : 'admin_client_new_helloasso') }}">← Retour</a>
                 <button class="btn" type="submit">Continuer</button>
             </div>
         {{ form_end(form) }}

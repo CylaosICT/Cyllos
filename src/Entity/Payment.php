@@ -7,6 +7,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PaymentRepository::class)]
 #[ORM\UniqueConstraint(name: 'client_helloasso_payment_unique', columns: ['client_id', 'hello_asso_payment_id'])]
+#[ORM\UniqueConstraint(name: 'client_payment_reference_unique', columns: ['client_id', 'reference'])]
 #[ORM\Index(columns: ['status'])]
 class Payment
 {
@@ -27,17 +28,33 @@ class Payment
      * to know which HelloAsso credentials/settings to use — by then, the
      * client may have more than one config and there's no other way to tell
      * them apart. Restricted from deletion (see HelloAssoConfig), so this
-     * never dangles.
+     * never dangles. Null for a Stripe payment.
      */
     #[ORM\ManyToOne(targetEntity: HelloAssoConfig::class)]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?HelloAssoConfig $helloAssoConfig = null;
 
     /**
-     * Payment id as given by HelloAsso, unique per client.
+     * Payment id as given by HelloAsso, unique per client. Null for a Stripe
+     * payment (identified by $reference instead).
      */
-    #[ORM\Column]
-    private int $helloAssoPaymentId;
+    #[ORM\Column(nullable: true)]
+    private ?int $helloAssoPaymentId = null;
+
+    #[ORM\Column(length: 20, enumType: PaymentProvider::class)]
+    private PaymentProvider $provider = PaymentProvider::HelloAsso;
+
+    /**
+     * Stripe payments only: the CheckoutOrder reference ("S-XXXXXXXXXX"),
+     * unique per client. It plays the role the HelloAsso payment id plays for
+     * HelloAsso payments (Cyclos description suffix, anti-duplicate key).
+     */
+    #[ORM\Column(length: 20, nullable: true)]
+    private ?string $reference = null;
+
+    #[ORM\ManyToOne(targetEntity: CheckoutOrder::class)]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?CheckoutOrder $checkoutOrder = null;
 
     #[ORM\Column]
     private \DateTimeImmutable $paymentDate;
@@ -84,17 +101,23 @@ class Payment
 
     public function __construct(
         Client $client,
-        HelloAssoConfig $helloAssoConfig,
-        int $helloAssoPaymentId,
+        ?HelloAssoConfig $helloAssoConfig,
+        ?int $helloAssoPaymentId,
         \DateTimeImmutable $paymentDate,
         float $amount,
         string $payerFirstName,
         string $payerLastName,
         string $email,
+        PaymentProvider $provider = PaymentProvider::HelloAsso,
+        ?string $reference = null,
+        ?CheckoutOrder $checkoutOrder = null,
     ) {
         $this->client = $client;
         $this->helloAssoConfig = $helloAssoConfig;
         $this->helloAssoPaymentId = $helloAssoPaymentId;
+        $this->provider = $provider;
+        $this->reference = $reference;
+        $this->checkoutOrder = $checkoutOrder;
         $this->paymentDate = $paymentDate;
         $this->amount = $amount;
         $this->payerFirstName = $payerFirstName;
@@ -103,6 +126,26 @@ class Payment
         $this->payerEmail = $email;
         $this->insertionDate = new \DateTimeImmutable();
         $this->status = PaymentStatus::Todo;
+    }
+
+    /**
+     * A Stripe payment, built from the CheckoutOrder it settles.
+     */
+    public static function forStripeOrder(CheckoutOrder $order, \DateTimeImmutable $paymentDate, string $payerName): self
+    {
+        return new self(
+            client: $order->getClient(),
+            helloAssoConfig: null,
+            helloAssoPaymentId: null,
+            paymentDate: $paymentDate,
+            amount: $order->getAmount(),
+            payerFirstName: '',
+            payerLastName: $payerName,
+            email: $order->getEmail(),
+            provider: PaymentProvider::Stripe,
+            reference: $order->getReference(),
+            checkoutOrder: $order,
+        );
     }
 
     public function getId(): ?int
@@ -115,12 +158,53 @@ class Payment
         return $this->client;
     }
 
-    public function getHelloAssoConfig(): HelloAssoConfig
+    public function getProvider(): PaymentProvider
+    {
+        return $this->provider;
+    }
+
+    public function getCheckoutOrder(): ?CheckoutOrder
+    {
+        return $this->checkoutOrder;
+    }
+
+    /**
+     * The payment's identifier as shown to humans and written in the Cyclos
+     * description: the HelloAsso payment id, or the Stripe order reference.
+     */
+    public function getReference(): string
+    {
+        return $this->reference ?? (string) $this->helloAssoPaymentId;
+    }
+
+    /**
+     * Where the payment came from, for lists: the HelloAsso form label, or
+     * "Stripe".
+     */
+    public function getSourceLabel(): string
+    {
+        return $this->helloAssoConfig?->getLabel() ?? $this->provider->label();
+    }
+
+    /**
+     * Whether the source is still active: the HelloAsso form, or the client's
+     * Stripe account for a Stripe payment.
+     */
+    public function isSourceActive(): bool
+    {
+        if ($this->helloAssoConfig !== null) {
+            return $this->helloAssoConfig->isActive();
+        }
+
+        return $this->getClient()->getStripeConfig()?->isActive() ?? false;
+    }
+
+    public function getHelloAssoConfig(): ?HelloAssoConfig
     {
         return $this->helloAssoConfig;
     }
 
-    public function getHelloAssoPaymentId(): int
+    public function getHelloAssoPaymentId(): ?int
     {
         return $this->helloAssoPaymentId;
     }

@@ -112,13 +112,13 @@
                     </div>
                 </div>
                 <div class="field-group">
-                    {% if app.user.client.contactEmail is empty %}
+                    {% if app.user.client.setting.mailRecipient is empty %}
                         <div class="docs-note docs-note--warning" style="margin-bottom:1rem;">
                             {{ icons.render('mail') }}
                             <p>Aucune adresse de contact n'est renseignée pour {{ app.user.client.name }} — ces notifications ne seront envoyées nulle part tant qu'elle n'est pas définie. Contactez Cylaos pour la faire ajouter.</p>
                         </div>
                     {% else %}
-                        <p class="text-sm text-muted" style="margin-bottom:1rem;">Envoyées à {{ app.user.client.contactEmail }}.</p>
+                        <p class="text-sm text-muted" style="margin-bottom:1rem;">Envoyées à {{ app.user.client.setting.mailRecipient }}.</p>
                     {% endif %}
                     {{ form_start(notificationsForm, {action: path('settings_notifications')}) }}
                         {{ form_widget(notificationsForm) }}

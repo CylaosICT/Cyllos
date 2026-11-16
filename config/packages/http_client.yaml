@@ -23,3 +23,15 @@ framework:
                 retry_failed:
                     retry_strategy: App\Http\NonMutatingRetryStrategy
                     max_retries: 3
+
+            # Outbound Stripe calls. The only POST (Checkout Session creation)
+            # carries an Idempotency-Key, so retrying 429/5xx/transport errors
+            # can never create a second session.
+            stripe.client:
+                scope: 'https://api\.stripe\.com'
+                retry_failed:
+                    http_codes: [429, 500, 502, 503, 504]
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 2
+                    max_delay: 10000

@@ -7,6 +7,7 @@ use App\Entity\Client;
 use App\Entity\ClientCustomization;
 use App\Entity\EmailAlias;
 use App\Entity\HelloAssoConfig;
+use App\Entity\PaymentProvider;
 use App\Entity\User;
 use App\Form\ClientCustomizationType;
 use App\Form\ClientInfoType;
@@ -17,7 +18,9 @@ use App\Form\CyclosConfigType;
 use App\Form\EmailAliasType;
 use App\Form\HelloAssoConfigType;
 use App\Form\ResetPasswordType;
+use App\Form\StripeConfigType;
 use App\Message\FetchClientPaymentsMessage;
+use App\Repository\CheckoutOrderRepository;
 use App\Repository\ClientRepository;
 use App\Repository\EmailAliasRepository;
 use App\Repository\PaymentRepository;
@@ -51,6 +54,7 @@ class ClientController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly PaymentRepository $paymentRepository,
         private readonly EmailAliasRepository $emailAliasRepository,
+        private readonly CheckoutOrderRepository $checkoutOrderRepository,
         private readonly MessageBusInterface $messageBus,
     ) {
     }
@@ -153,8 +157,9 @@ class ClientController extends AbstractController
     public function newUser(Client $client, Request $request): Response
     {
         $isFirstAccount = $this->userRepository->findByClient($client) === [];
-        $prefill = $isFirstAccount && $client->getContactEmail() !== null
-            ? ['email' => $client->getContactEmail()]
+        $contactEmail = $client->getSetting()?->getMailRecipient();
+        $prefill = $isFirstAccount && $contactEmail !== null && $contactEmail !== ''
+            ? ['email' => $contactEmail]
             : [];
 
         $form = $this->createForm(ClientUserType::class, $prefill);
@@ -293,6 +298,11 @@ class ClientController extends AbstractController
         foreach ($this->paymentRepository->findAllForClient($client) as $payment) {
             $this->entityManager->remove($payment);
         }
+        // Payments reference their order, so the unit of work must delete them first.
+        $this->entityManager->flush();
+        foreach ($this->checkoutOrderRepository->findAllForClient($client) as $order) {
+            $this->entityManager->remove($order);
+        }
         foreach ($this->userRepository->findByClient($client) as $user) {
             $this->entityManager->remove($user);
         }
@@ -311,7 +321,7 @@ class ClientController extends AbstractController
     }
 
     // ---------------------------------------------------------------------
-    // Creation wizard: informations -> helloasso -> cyclos -> reglages
+    // Creation wizard: informations -> prestataire -> helloasso|stripe -> cyclos -> reglages
     // ---------------------------------------------------------------------
 
     #[Route(path: '/new', name: 'new', methods: ['GET', 'POST'])]
@@ -330,7 +340,7 @@ class ClientController extends AbstractController
                 'active' => $client->isActive(),
             ]);
 
-            return $this->redirectToRoute('admin_client_new_helloasso');
+            return $this->redirectToRoute('admin_client_new_provider');
         }
 
         return $this->render('admin/client/wizard/informations.html.twig', [
@@ -338,11 +348,64 @@ class ClientController extends AbstractController
         ]);
     }
 
-    #[Route(path: '/new/helloasso', name: 'new_helloasso', methods: ['GET', 'POST'])]
-    public function wizardHelloAsso(Request $request): Response
+    #[Route(path: '/new/prestataire', name: 'new_provider', methods: ['GET', 'POST'])]
+    public function wizardProvider(Request $request): Response
     {
         if (!$this->wizardState->hasStep('info')) {
             return $this->redirectToRoute('admin_client_new');
+        }
+
+        if ($request->isMethod('POST')) {
+            $provider = PaymentProvider::tryFrom((string) $request->request->get('provider'));
+
+            if ($provider !== null && $this->isCsrfTokenValid('client_wizard_provider', (string) $request->request->get('_token'))) {
+                $this->wizardState->set('provider', ['value' => $provider->value]);
+
+                return $this->redirectToRoute($provider === PaymentProvider::Stripe ? 'admin_client_new_stripe' : 'admin_client_new_helloasso');
+            }
+
+            $this->addFlash('error', 'Merci de choisir un prestataire de paiement.');
+        }
+
+        return $this->render('admin/client/wizard/provider.html.twig', [
+            'provider' => $this->wizardState->provider(),
+            'selected' => $this->wizardState->provider(),
+        ]);
+    }
+
+    #[Route(path: '/new/stripe', name: 'new_stripe', methods: ['GET', 'POST'])]
+    public function wizardStripe(Request $request): Response
+    {
+        if ($this->wizardState->provider() !== PaymentProvider::Stripe) {
+            return $this->redirectToRoute($this->wizardState->hasStep('info') ? 'admin_client_new_provider' : 'admin_client_new');
+        }
+
+        $config = $this->wizardState->stripeConfig();
+        $form = $this->createForm(StripeConfigType::class, $config, ['secret_required' => !$this->wizardState->hasStep('stripe')]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->wizardState->set('stripe', [
+                'secretKey' => $form->get('secretKey')->getData() ?: $this->wizardState->stripeSecretKey(),
+                'webhookSecret' => $form->get('webhookSecret')->getData() ?: $this->wizardState->stripeWebhookSecret(),
+                'minAmount' => $config->getMinAmount(),
+                'maxAmount' => $config->getMaxAmount(),
+            ]);
+
+            return $this->redirectToRoute('admin_client_new_cyclos');
+        }
+
+        return $this->render('admin/client/wizard/stripe.html.twig', [
+            'provider' => PaymentProvider::Stripe,
+            'form' => $form,
+        ]);
+    }
+
+    #[Route(path: '/new/helloasso', name: 'new_helloasso', methods: ['GET', 'POST'])]
+    public function wizardHelloAsso(Request $request): Response
+    {
+        if ($this->wizardState->provider() !== PaymentProvider::HelloAsso) {
+            return $this->redirectToRoute($this->wizardState->hasStep('info') ? 'admin_client_new_provider' : 'admin_client_new');
         }
 
         $config = $this->wizardState->helloAssoConfig();
@@ -368,6 +431,7 @@ class ClientController extends AbstractController
         }
 
         return $this->render('admin/client/wizard/helloasso.html.twig', [
+            'provider' => PaymentProvider::HelloAsso,
             'form' => $form,
         ]);
     }
@@ -375,7 +439,7 @@ class ClientController extends AbstractController
     #[Route(path: '/new/cyclos', name: 'new_cyclos', methods: ['GET', 'POST'])]
     public function wizardCyclos(Request $request): Response
     {
-        if (!$this->wizardState->hasStep('helloAsso')) {
+        if (!$this->wizardState->hasProviderConfigStep()) {
             return $this->redirectToRoute('admin_client_new');
         }
 
@@ -400,6 +464,7 @@ class ClientController extends AbstractController
 
         return $this->render('admin/client/wizard/cyclos.html.twig', [
             'form' => $form,
+            'provider' => $this->wizardState->provider(),
         ]);
     }
 
@@ -416,12 +481,24 @@ class ClientController extends AbstractController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $client = $this->wizardState->clientInfo();
-            $helloAssoConfig = $this->wizardState->helloAssoConfig();
-            $helloAssoConfig->setClientSecretEncrypted($this->secretEncryptor->encrypt($this->wizardState->helloAssoSecret()));
+            $provider = $this->wizardState->provider() ?? PaymentProvider::HelloAsso;
+            $client->setPaymentProvider($provider);
+
+            if ($provider === PaymentProvider::Stripe) {
+                $stripeConfig = $this->wizardState->stripeConfig();
+                $plainSecretKey = $this->wizardState->stripeSecretKey();
+                $stripeConfig->setSecretKeyEncrypted($this->secretEncryptor->encrypt($plainSecretKey));
+                $stripeConfig->rememberSecretKeyHint($plainSecretKey);
+                $stripeConfig->setWebhookSecretEncrypted($this->secretEncryptor->encrypt($this->wizardState->stripeWebhookSecret()));
+                $client->setStripeConfig($stripeConfig);
+            } else {
+                $helloAssoConfig = $this->wizardState->helloAssoConfig();
+                $helloAssoConfig->setClientSecretEncrypted($this->secretEncryptor->encrypt($this->wizardState->helloAssoSecret()));
+                $client->addHelloAssoConfig($helloAssoConfig);
+            }
+
             $cyclosConfig = $this->wizardState->cyclosConfig();
             $cyclosConfig->setPasswordEncrypted($this->secretEncryptor->encrypt($this->wizardState->cyclosPassword()));
-
-            $client->addHelloAssoConfig($helloAssoConfig);
             $client->setCyclosConfig($cyclosConfig);
             $client->setSetting($setting);
 
@@ -435,6 +512,7 @@ class ClientController extends AbstractController
         }
 
         return $this->render('admin/client/wizard/reglages.html.twig', [
+            'provider' => $this->wizardState->provider(),
             'form' => $form,
         ]);
     }
@@ -611,6 +689,40 @@ class ClientController extends AbstractController
         }
 
         throw $this->createNotFoundException('Formulaire HelloAsso introuvable pour ce client.');
+    }
+
+    #[Route(path: '/{id}/stripe', requirements: ['id' => '\d+'], name: 'edit_stripe', methods: ['GET', 'POST'])]
+    public function editStripe(Client $client, Request $request): Response
+    {
+        $config = $client->getStripeConfig();
+        if (!$client->usesStripe() || $config === null) {
+            throw $this->createNotFoundException("Ce client n'utilise pas Stripe.");
+        }
+
+        $form = $this->createForm(StripeConfigType::class, $config, ['secret_required' => false]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $secretKey = $form->get('secretKey')->getData();
+            if ($secretKey !== null && $secretKey !== '') {
+                $config->setSecretKeyEncrypted($this->secretEncryptor->encrypt($secretKey));
+                $config->rememberSecretKeyHint($secretKey);
+            }
+            $webhookSecret = $form->get('webhookSecret')->getData();
+            if ($webhookSecret !== null && $webhookSecret !== '') {
+                $config->setWebhookSecretEncrypted($this->secretEncryptor->encrypt($webhookSecret));
+            }
+            $this->entityManager->flush();
+            $this->addFlash('success', 'La configuration Stripe a été mise à jour.');
+
+            return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
+        }
+
+        return $this->render('admin/client/edit_section.html.twig', [
+            'client' => $client,
+            'form' => $form,
+            'section_title' => 'Stripe',
+        ]);
     }
 
     #[Route(path: '/{id}/cyclos', requirements: ['id' => '\d+'], name: 'edit_cyclos', methods: ['GET', 'POST'])]

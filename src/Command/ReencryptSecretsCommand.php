@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Repository\CyclosConfigRepository;
 use App\Repository\HelloAssoConfigRepository;
+use App\Repository\StripeConfigRepository;
 use App\Repository\UserRepository;
 use App\Security\SecretEncryptor;
 use Doctrine\ORM\EntityManagerInterface;
@@ -15,7 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Rewrites every stored secret (HelloAsso client secret, Cyclos password, user
+ * Rewrites every stored secret (HelloAsso client secret, Stripe keys, Cyclos password, user
  * TOTP secret) with the current primary APP_ENCRYPTION_KEY. Run this after a key
  * rotation — set the
  * new key as APP_ENCRYPTION_KEY, move the old one to APP_ENCRYPTION_KEYS_LEGACY,
@@ -35,6 +36,7 @@ class ReencryptSecretsCommand extends Command
         private readonly SecretEncryptor $secretEncryptor,
         private readonly HelloAssoConfigRepository $helloAssoConfigRepository,
         private readonly CyclosConfigRepository $cyclosConfigRepository,
+        private readonly StripeConfigRepository $stripeConfigRepository,
         private readonly UserRepository $userRepository,
     ) {
         parent::__construct();
@@ -58,6 +60,10 @@ class ReencryptSecretsCommand extends Command
         $targets = [];
         foreach ($this->helloAssoConfigRepository->findAll() as $config) {
             $targets[] = [$config, 'HelloAssoConfig#' . $config->getId() . ' (clientSecret)', $config->getClientSecretEncrypted(...), $config->setClientSecretEncrypted(...)];
+        }
+        foreach ($this->stripeConfigRepository->findAll() as $config) {
+            $targets[] = [$config, 'StripeConfig#' . $config->getId() . ' (secretKey)', $config->getSecretKeyEncrypted(...), $config->setSecretKeyEncrypted(...)];
+            $targets[] = [$config, 'StripeConfig#' . $config->getId() . ' (webhookSecret)', $config->getWebhookSecretEncrypted(...), $config->setWebhookSecretEncrypted(...)];
         }
         foreach ($this->cyclosConfigRepository->findAll() as $config) {
             $targets[] = [$config, 'CyclosConfig#' . $config->getId() . ' (password)', $config->getPasswordEncrypted(...), $config->setPasswordEncrypted(...)];

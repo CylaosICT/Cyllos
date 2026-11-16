@@ -7,7 +7,7 @@
 {% block page_title %}Nouveau client{% endblock %}
 
 {% block body %}
-    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 1} %}
+    {% include 'admin/client/wizard/_stepper.html.twig' with {currentStep: 1, provider: null} %}
 
     <div class="card">
         {{ form_start(form) }}
@@ -16,7 +16,6 @@
                 <div class="form-grid form-grid--wide">
                     {{ form_row(form.name, {attr: {'data-slug-target': 'source', 'data-action': 'input->slug#sync'}}) }}
                     {{ form_row(form.slug, {attr: {'data-slug-target': 'slug', 'data-action': 'input->slug#lock'}}) }}
-                    {{ form_row(form.contactEmail) }}
                     {{ form_row(form.active) }}
                 </div>
             </div>
