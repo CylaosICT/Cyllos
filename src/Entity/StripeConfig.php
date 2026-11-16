@@ -65,6 +65,86 @@ class StripeConfig
     #[Assert\Positive]
     private int $maxAmount = 250;
 
+    /** Payment page identity (cyllos-pay): optional hex colours (#RRGGBB). The logo is the client's own. */
+    public const HEX_COLOR_PATTERN = '/^#[0-9A-Fa-f]{6}$/';
+
+    #[ORM\Column(length: 7, nullable: true)]
+    #[Assert\Regex(pattern: self::HEX_COLOR_PATTERN, message: 'Couleur invalide : attendu un code hexadécimal #RRGGBB.')]
+    private ?string $brandPrimaryColor = null;
+
+    #[ORM\Column(length: 7, nullable: true)]
+    #[Assert\Regex(pattern: self::HEX_COLOR_PATTERN, message: 'Couleur invalide : attendu un code hexadécimal #RRGGBB.')]
+    private ?string $brandBackgroundColor = null;
+
+    #[ORM\Column(length: 7, nullable: true)]
+    #[Assert\Regex(pattern: self::HEX_COLOR_PATTERN, message: 'Couleur invalide : attendu un code hexadécimal #RRGGBB.')]
+    private ?string $brandSurfaceColor = null;
+
+    #[ORM\Column(length: 7, nullable: true)]
+    #[Assert\Regex(pattern: self::HEX_COLOR_PATTERN, message: 'Couleur invalide : attendu un code hexadécimal #RRGGBB.')]
+    private ?string $brandTextColor = null;
+
+    public function getBrandPrimaryColor(): ?string
+    {
+        return $this->brandPrimaryColor;
+    }
+
+    public function setBrandPrimaryColor(?string $color): static
+    {
+        $this->brandPrimaryColor = self::normalizeColor($color);
+
+        return $this;
+    }
+
+    public function getBrandBackgroundColor(): ?string
+    {
+        return $this->brandBackgroundColor;
+    }
+
+    public function setBrandBackgroundColor(?string $color): static
+    {
+        $this->brandBackgroundColor = self::normalizeColor($color);
+
+        return $this;
+    }
+
+    public function getBrandSurfaceColor(): ?string
+    {
+        return $this->brandSurfaceColor;
+    }
+
+    public function setBrandSurfaceColor(?string $color): static
+    {
+        $this->brandSurfaceColor = self::normalizeColor($color);
+
+        return $this;
+    }
+
+    public function getBrandTextColor(): ?string
+    {
+        return $this->brandTextColor;
+    }
+
+    public function setBrandTextColor(?string $color): static
+    {
+        $this->brandTextColor = self::normalizeColor($color);
+
+        return $this;
+    }
+
+    private static function normalizeColor(?string $color): ?string
+    {
+        $color = $color === null ? null : trim($color);
+        if ($color === null || $color === '') {
+            return null;
+        }
+        if (preg_match('/^[0-9A-Fa-f]{6}$/', $color) === 1) {
+            $color = '#' . $color;
+        }
+
+        return strtolower($color);
+    }
+
     public function getId(): ?int
     {
         return $this->id;

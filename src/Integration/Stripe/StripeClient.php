@@ -65,7 +65,6 @@ class StripeClient
             'customer_email' => $order->getEmail(),
             'client_reference_id' => $order->getReference(),
             'expires_at' => time() + self::SESSION_LIFETIME_SECONDS,
-            'payment_method_types' => ['card'],
             'metadata' => ['order_reference' => $order->getReference()],
             'payment_intent_data' => [
                 'description' => $productName . ' — ' . $order->getReference(),

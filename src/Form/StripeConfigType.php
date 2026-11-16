@@ -6,6 +6,7 @@ use App\Entity\StripeConfig;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -65,6 +66,30 @@ class StripeConfigType extends AbstractType
             ])
             ->add('maxAmount', IntegerType::class, [
                 'label' => 'Montant maximum par paiement (€)',
+            ])
+            ->add('brandPrimaryColor', TextType::class, [
+                'label' => 'Couleur principale (boutons, accents)',
+                'required' => false,
+                'help' => 'Format #RRGGBB. Laisser vide pour le thème par défaut.',
+                'attr' => ['placeholder' => '#2b6cb0', 'maxlength' => 7, 'autocomplete' => 'off', 'spellcheck' => 'false'],
+            ])
+            ->add('brandBackgroundColor', TextType::class, [
+                'label' => 'Couleur du fond de page',
+                'required' => false,
+                'help' => 'Format #RRGGBB. Laisser vide pour le thème par défaut.',
+                'attr' => ['placeholder' => '#0f172a', 'maxlength' => 7, 'autocomplete' => 'off', 'spellcheck' => 'false'],
+            ])
+            ->add('brandSurfaceColor', TextType::class, [
+                'label' => 'Couleur de la carte',
+                'required' => false,
+                'help' => 'Format #RRGGBB. Laisser vide pour le thème par défaut.',
+                'attr' => ['placeholder' => '#1e293b', 'maxlength' => 7, 'autocomplete' => 'off', 'spellcheck' => 'false'],
+            ])
+            ->add('brandTextColor', TextType::class, [
+                'label' => 'Couleur du texte',
+                'required' => false,
+                'help' => 'Format #RRGGBB. Laisser vide pour le thème par défaut.',
+                'attr' => ['placeholder' => '#f1f5f9', 'maxlength' => 7, 'autocomplete' => 'off', 'spellcheck' => 'false'],
             ]);
     }
 

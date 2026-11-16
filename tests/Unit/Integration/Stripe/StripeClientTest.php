@@ -72,7 +72,8 @@ class StripeClientTest extends TestCase
         parse_str($captured['options']['body'], $body);
         self::assertSame('payment', $body['mode']);
         self::assertSame('hosted_page', $body['ui_mode']);
-        self::assertSame(['card'], $body['payment_method_types']);
+        // Payment methods are managed from the Stripe Dashboard: the parameter is no longer accepted.
+        self::assertArrayNotHasKey('payment_method_types', $body);
         self::assertSame('payer@example.com', $body['customer_email']);
         self::assertSame($order->getReference(), $body['client_reference_id']);
         self::assertSame($order->getReference(), $body['metadata']['order_reference']);
