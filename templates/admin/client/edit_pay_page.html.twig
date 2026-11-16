@@ -1,0 +1,58 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ section_title }} — {{ client.name }} - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / <a href="{{ path('admin_client_show', {id: client.id}) }}">{{ client.name }}</a> / {{ section_title }}</div>{% endblock %}
+{% block page_title %}{{ section_title }}{% endblock %}
+
+{% block body %}
+    <div class="card">
+        <p class="text-sm text-muted" style="margin-bottom:1.25rem;">
+            Personnalisez la page que voient les personnes qui alimentent leur compte : couleurs, style, textes et parcours.
+            Tout est facultatif — un champ vide garde la valeur par défaut. Le logo est celui de la fiche client.
+            {% if pay_page_url %}<a href="{{ pay_page_url }}" target="_blank" rel="noopener">Voir la page de paiement ↗</a>{% endif %}
+        </p>
+
+        {{ form_start(form) }}
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Couleurs</h2>
+                <div class="form-grid form-grid--wide">
+                    {{ form_row(form.brandPrimaryColor) }}
+                    {{ form_row(form.brandBackgroundColor) }}
+                    {{ form_row(form.brandSurfaceColor) }}
+                    {{ form_row(form.brandTextColor) }}
+                </div>
+            </div>
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Apparence</h2>
+                <div class="form-grid form-grid--wide">
+                    {{ form_row(form.payFont) }}
+                    {{ form_row(form.payRadius) }}
+                    {{ form_row(form.payBackground) }}
+                </div>
+            </div>
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Textes</h2>
+                <div class="form-grid form-grid--wide">
+                    {{ form_row(form.payTitle) }}
+                    {{ form_row(form.payButtonLabel) }}
+                    {{ form_row(form.payIntro) }}
+                    {{ form_row(form.paySuccessMessage) }}
+                    {{ form_row(form.paySupportText) }}
+                </div>
+            </div>
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Parcours</h2>
+                <div class="form-grid form-grid--wide">
+                    {{ form_row(form.payShowConfirmStep) }}
+                    {{ form_row(form.payQuickAmounts) }}
+                </div>
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_show', {id: client.id}) }}">Annuler</a>
+                <button class="btn" type="submit">Enregistrer</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

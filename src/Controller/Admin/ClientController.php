@@ -17,6 +17,7 @@ use App\Form\ClientWizardState;
 use App\Form\CyclosConfigType;
 use App\Form\EmailAliasType;
 use App\Form\HelloAssoConfigType;
+use App\Form\PayPageType;
 use App\Form\ResetPasswordType;
 use App\Form\StripeConfigType;
 use App\Message\FetchClientPaymentsMessage;
@@ -56,6 +57,7 @@ class ClientController extends AbstractController
         private readonly EmailAliasRepository $emailAliasRepository,
         private readonly CheckoutOrderRepository $checkoutOrderRepository,
         private readonly MessageBusInterface $messageBus,
+        private readonly string $paySiteBaseUrl,
     ) {
     }
 
@@ -703,7 +705,8 @@ class ClientController extends AbstractController
             throw $this->createNotFoundException("Ce client n'utilise pas Stripe.");
         }
 
-        $form = $this->createForm(StripeConfigType::class, $config, ['secret_required' => false]);
+        // The page colours live on the dedicated "payment page" form (edit_pay_page).
+        $form = $this->createForm(StripeConfigType::class, $config, ['secret_required' => false, 'branding' => false]);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -726,6 +729,35 @@ class ClientController extends AbstractController
             'client' => $client,
             'form' => $form,
             'section_title' => 'Stripe',
+        ]);
+    }
+
+    /**
+     * Look, wording and flow of the page the client's payers see (cyllos-pay).
+     */
+    #[Route(path: '/{id}/page-paiement', requirements: ['id' => '\d+'], name: 'edit_pay_page', methods: ['GET', 'POST'])]
+    public function editPayPage(Client $client, Request $request): Response
+    {
+        $config = $client->getStripeConfig();
+        if (!$client->usesStripe() || $config === null) {
+            throw $this->createNotFoundException("Ce client n'utilise pas Stripe.");
+        }
+
+        $form = $this->createForm(PayPageType::class, $config);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->entityManager->flush();
+            $this->addFlash('success', 'La page de paiement a été mise à jour.');
+
+            return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
+        }
+
+        return $this->render('admin/client/edit_pay_page.html.twig', [
+            'client' => $client,
+            'form' => $form,
+            'section_title' => 'Page de paiement',
+            'pay_page_url' => $this->paySiteBaseUrl !== '' ? rtrim($this->paySiteBaseUrl, '/') . '/' . rawurlencode($client->getSlug()) : null,
         ]);
     }
 

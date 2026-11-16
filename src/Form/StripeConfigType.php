@@ -66,7 +66,13 @@ class StripeConfigType extends AbstractType
             ])
             ->add('maxAmount', IntegerType::class, [
                 'label' => 'Montant maximum par paiement (€)',
-            ])
+            ]);
+
+        if (!$options['branding']) {
+            return;
+        }
+
+        $builder
             ->add('brandPrimaryColor', TextType::class, [
                 'label' => 'Couleur principale (boutons, accents)',
                 'required' => false,
@@ -98,7 +104,10 @@ class StripeConfigType extends AbstractType
         $resolver->setDefaults([
             'data_class' => StripeConfig::class,
             'secret_required' => true,
+            // The wizard also asks for the page colours; the edit page leaves them to the dedicated "payment page" form.
+            'branding' => true,
         ]);
         $resolver->setAllowedTypes('secret_required', 'bool');
+        $resolver->setAllowedTypes('branding', 'bool');
     }
 }
