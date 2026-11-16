@@ -24,12 +24,7 @@
             <div class="field-group">
                 <h2 style="font-size:1rem;margin-bottom:0.35rem;">Identité de la page de paiement</h2>
                 <p class="text-sm text-muted" style="margin-bottom:1.1rem;">Couleurs de la page vue par les payeurs (le logo est celui de la fiche client). Facultatif : modifiable ensuite.</p>
-                <div class="form-grid form-grid--wide">
-                    {{ form_row(form.brandPrimaryColor) }}
-                    {{ form_row(form.brandBackgroundColor) }}
-                    {{ form_row(form.brandSurfaceColor) }}
-                    {{ form_row(form.brandTextColor) }}
-                </div>
+                {% include 'admin/client/_pay_colors.html.twig' with {form: form} only %}
             </div>
             <div class="form-footer">
                 <a class="btn btn--ghost" href="{{ path('admin_client_new_provider') }}">← Retour</a>

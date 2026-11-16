@@ -52,6 +52,10 @@ class PayPageAdminTest extends WebTestCase
     {
         $crawler = $this->httpClient->request('GET', $this->url());
         self::assertResponseIsSuccessful();
+        // The colour picker: ready-made palettes and one text field per colour for the controller to drive.
+        self::assertSelectorExists('[data-controller="pay-palette"]');
+        self::assertGreaterThanOrEqual(8, $crawler->filter('.pay-palette__swatch')->count());
+        self::assertCount(4, $crawler->filter('input[data-pay-palette-target]:not([type=color])'));
 
         $form = $crawler->selectButton('Enregistrer')->form();
         $form['pay_page[brandPrimaryColor]'] = '#C2410C';

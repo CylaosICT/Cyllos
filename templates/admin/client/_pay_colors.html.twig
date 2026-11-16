@@ -1,0 +1,77 @@
+{#
+    Colour picker for the payment page. Expects `form` with brandPrimaryColor, brandBackgroundColor,
+    brandSurfaceColor and brandTextColor; optional `logo_url` (the client's logo, for "Suggérer depuis le logo").
+    Behaviour: assets/controllers/pay_palette_controller.js
+#}
+{% set palettes = [
+    {name: 'Océan', primary: '#38bdf8', background: '#0b1220', surface: '#131c2e', text: '#e6f1ff'},
+    {name: 'Forêt', primary: '#4ade80', background: '#0d1a14', surface: '#14261d', text: '#e8f5ec'},
+    {name: 'Ambre', primary: '#f59e0b', background: '#1c1410', surface: '#2a1f17', text: '#fdf3e3'},
+    {name: 'Prune', primary: '#c084fc', background: '#150f1f', surface: '#211733', text: '#f3e8ff'},
+    {name: 'Corail', primary: '#fb7185', background: '#1c1015', surface: '#2a1820', text: '#ffe9ed'},
+    {name: 'Ardoise', primary: '#2563eb', background: '#f1f5f9', surface: '#ffffff', text: '#0f172a'},
+    {name: 'Menthe', primary: '#0d9488', background: '#f0fdfa', surface: '#ffffff', text: '#134e4a'},
+    {name: 'Rose', primary: '#e11d48', background: '#fff1f2', surface: '#ffffff', text: '#4c0519'},
+    {name: 'Sable', primary: '#b45309', background: '#faf5eb', surface: '#fffdf8', text: '#2b2118'},
+    {name: 'Mono', primary: '#111827', background: '#f3f4f6', surface: '#ffffff', text: '#111827'},
+] %}
+{% set fields = [
+    {key: 'primary', field: form.brandPrimaryColor, hint: 'boutons, accents'},
+    {key: 'background', field: form.brandBackgroundColor, hint: 'fond de page'},
+    {key: 'surface', field: form.brandSurfaceColor, hint: 'carte'},
+    {key: 'text', field: form.brandTextColor, hint: 'texte'},
+] %}
+
+<div class="pay-palette" data-controller="pay-palette"{% if logo_url is defined and logo_url %} data-pay-palette-logo-value="{{ logo_url }}"{% endif %}>
+    <div class="pay-palette__block">
+        <h3 class="pay-palette__title">Palettes prêtes à l'emploi</h3>
+        <div class="pay-palette__swatches">
+            {% for p in palettes %}
+                <button type="button" class="pay-palette__swatch" title="{{ p.name }}"
+                        data-action="pay-palette#applyPalette" data-name="{{ p.name }}"
+                        data-primary="{{ p.primary }}" data-background="{{ p.background }}" data-surface="{{ p.surface }}" data-text="{{ p.text }}">
+                    <span class="pay-palette__chip" style="background:{{ p.background }}">
+                        <span style="background:{{ p.surface }}"></span>
+                        <i style="background:{{ p.primary }}"></i>
+                    </span>
+                    <span class="pay-palette__name">{{ p.name }}</span>
+                </button>
+            {% endfor %}
+        </div>
+        <div class="pay-palette__tools">
+            <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#theme" data-mode="dark">Thème sombre depuis la couleur principale</button>
+            <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#theme" data-mode="light">Thème clair depuis la couleur principale</button>
+            {% if logo_url is defined and logo_url %}
+                <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#fromLogo">Suggérer depuis le logo</button>
+            {% endif %}
+            <button type="button" class="btn btn--ghost btn--sm" data-action="pay-palette#clear">Réinitialiser</button>
+        </div>
+        <p class="text-sm text-muted pay-palette__message" data-pay-palette-target="message" role="status" aria-live="polite"></p>
+    </div>
+
+    <div class="pay-palette__main">
+        <div class="pay-palette__fields">
+            {% for f in fields %}
+                <div class="pay-palette__field">
+                    {{ form_label(f.field) }}
+                    <div class="pay-palette__input">
+                        <input type="color" value="#000000" aria-label="Sélecteur : {{ f.hint }}"
+                               data-pay-palette-target="{{ f.key }}Picker" data-field="{{ f.key }}" data-action="input->pay-palette#pick">
+                        {{ form_widget(f.field, {attr: {'data-pay-palette-target': f.key, 'data-action': 'input->pay-palette#input'}}) }}
+                    </div>
+                    {{ form_errors(f.field) }}
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="pay-preview" data-pay-palette-target="preview" aria-hidden="true">
+            <div class="pay-preview__card">
+                <strong class="pay-preview__title">Aperçu de la page</strong>
+                <div class="pay-preview__steps"><span class="on"></span><span class="on"></span><span></span><span></span></div>
+                <div class="pay-preview__input">prenom.nom@exemple.fr</div>
+                <div class="pay-preview__btn">Continuer</div>
+            </div>
+        </div>
+    </div>
+    <p class="text-sm text-muted">Un champ laissé vide garde la valeur par défaut ; les couleurs manquantes sont déduites de celles saisies pour rester lisibles.</p>
+</div>
