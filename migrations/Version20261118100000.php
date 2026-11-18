@@ -26,7 +26,7 @@ final class Version20261118100000 extends AbstractMigration
         $this->addSql("ALTER TABLE stripe_config
             ADD pay_amount_mode VARCHAR(10) DEFAULT 'range' NOT NULL, ADD pay_amount_choices VARCHAR(255) DEFAULT NULL,
             ADD pay_fixed_amount INT DEFAULT NULL, ADD pay_fixed_credit INT DEFAULT NULL,
-            ADD pay_credit_rate DOUBLE PRECISION DEFAULT NULL, ADD pay_credit_unit VARCHAR(20) DEFAULT NULL");
+            ADD pay_credit_rate DOUBLE PRECISION DEFAULT NULL, ADD pay_credit_unit VARCHAR(41) DEFAULT NULL");
         $this->addSql('ALTER TABLE checkout_order ADD credit_amount_cents INT DEFAULT NULL');
         $this->addSql('UPDATE checkout_order SET credit_amount_cents = amount_cents');
 

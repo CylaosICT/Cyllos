@@ -74,14 +74,13 @@
                         <div class="kv-row"><dt>Clé API</dt><dd><code>{{ stripe.secretKeyHint }}</code></dd></div>
                         <div class="kv-row"><dt>Secret webhook</dt><dd>Enregistré (chiffré)</dd></div>
                         <div class="kv-row"><dt>Type de règlement</dt><dd>
-                            {% set unit = stripe.payCreditUnit ?? 'unités' %}
                             {% if stripe.payAmountMode == 'fixed' %}
-                                Montant unique : {{ stripe.payFixedAmount }} €{% if stripe.payFixedCredit and stripe.payFixedCredit != stripe.payFixedAmount %} → {{ stripe.payFixedCredit }} {{ unit }} crédités{% endif %}
+                                Montant unique : {{ stripe.payFixedAmount }} €{% if stripe.payFixedCredit and stripe.payFixedCredit != stripe.payFixedAmount %} → {{ stripe.payFixedCredit }} {{ stripe.creditUnitLabel(stripe.payFixedCredit * 100) }} crédités{% endif %}
                             {% elseif stripe.payAmountMode == 'list' %}
                                 Au choix :
-                                {% for offer in stripe.amountOffers %}{{ offer.paidCents / 100 }} €{% if offer.hasDifferentCredit %} → {{ offer.creditCents / 100 }} {{ unit }}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+                                {% for offer in stripe.amountOffers %}{{ offer.paidCents / 100 }} €{% if offer.hasDifferentCredit %} → {{ offer.creditCents / 100 }} {{ stripe.creditUnitLabel(offer.creditCents) }}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
                             {% else %}
-                                Fourchette : de {{ stripe.minAmount }} € à {{ stripe.maxAmount }} €{% if stripe.payCreditRate and stripe.payCreditRate != 1 %} · 1 € = {{ stripe.payCreditRate }} {{ unit }}{% endif %}{% if stripe.payQuickAmounts %} · raccourcis : {{ stripe.payQuickAmounts }} €{% endif %}
+                                Fourchette : de {{ stripe.minAmount }} € à {{ stripe.maxAmount }} €{% if stripe.payCreditRate and stripe.payCreditRate != 1 %} · 1 € = {{ stripe.payCreditRate }} {{ stripe.creditUnitLabel((stripe.payCreditRate * 100)|round) }}{% endif %}{% if stripe.payQuickAmounts %} · raccourcis : {{ stripe.payQuickAmounts }} €{% endif %}
                             {% endif %}
                         </dd></div>
                     </dl>

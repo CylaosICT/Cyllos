@@ -118,4 +118,22 @@ class StripeConfigAmountRulesTest extends TestCase
         $config->setPayAmountMode(StripeConfig::AMOUNT_MODE_RANGE);
         self::assertCount(1, $this->violations($config));
     }
+
+    public function testTheCreditUnitIsTheClientsOwnWordWithOptionalPlural(): void
+    {
+        $config = $this->config();
+        self::assertSame('unités', $config->creditUnitLabel(20000));
+
+        $config->setPayCreditUnit('cigogne|cigognes');
+        self::assertSame('cigogne', $config->creditUnitLabel(100));
+        self::assertSame('cigognes', $config->creditUnitLabel(20000));
+        self::assertSame([], $this->violations($config));
+
+        $config->setPayCreditUnit('point');
+        self::assertSame('point', $config->creditUnitLabel(20000));
+
+        foreach (['a|b|c', '|cigognes', str_repeat('x', 21)] as $invalid) {
+            self::assertNotSame([], $this->violations($config->setPayCreditUnit($invalid)), $invalid);
+        }
+    }
 }
