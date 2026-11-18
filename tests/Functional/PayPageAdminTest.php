@@ -48,16 +48,18 @@ class PayPageAdminTest extends WebTestCase
         return '/admin/clients/' . $this->client->getId() . '/page-paiement';
     }
 
-    public function testClientPageLinksToThePaletteEditor(): void
+    public function testClientPageLinksToThePayPageEditorButTheListDoesNot(): void
     {
         $this->httpClient->request('GET', '/admin/clients/' . $this->client->getId());
 
         self::assertResponseIsSuccessful();
         self::assertSelectorExists('a[href="' . $this->url() . '"]');
-        self::assertSelectorTextContains('body', 'Modifier la palette et le style');
+        self::assertSelectorTextContains('body', 'Page de paiement');
 
+        // The client list only offers "Paiements" and "Détails": no shortcut to the page style.
         $this->httpClient->request('GET', '/admin/clients');
-        self::assertSelectorExists('a[href="' . $this->url() . '"]');
+        self::assertSelectorNotExists('a[href="' . $this->url() . '"]');
+        self::assertSelectorExists('a[href="/admin/clients/' . $this->client->getId() . '"]');
     }
 
     public function testSavesLookWordingAndFlow(): void

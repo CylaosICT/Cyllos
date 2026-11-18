@@ -50,7 +50,6 @@
                                     </td>
                                     <td class="actions-cell">
                                         <div class="actions">
-                                            {% if client.usesStripe and client.stripeConfig %}<a class="btn btn--secondary btn--sm" href="{{ path('admin_client_edit_pay_page', {id: client.id}) }}">Couleurs</a>{% endif %}
                                             <a class="btn btn--secondary btn--sm" href="{{ path('admin_payment_list', {client: client.id}) }}">Paiements</a>
                                             <a class="btn btn--secondary btn--sm" href="{{ path('admin_client_show', {id: client.id}) }}">Détails {{ icons.render('chevron-right') }}</a>
                                         </div>
