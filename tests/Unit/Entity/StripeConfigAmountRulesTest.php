@@ -75,7 +75,7 @@ class StripeConfigAmountRulesTest extends TestCase
 
         $config->setPayFixedCredit(150);
         $offer = $config->offerFor(10000);
-        self::assertSame(15000, $offer?->creditCents);
+        self::assertSame(15000, $offer->creditCents);
         self::assertTrue($offer->hasDifferentCredit());
         self::assertSame([], $this->violations($config));
     }
