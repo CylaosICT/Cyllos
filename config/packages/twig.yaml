@@ -1,6 +1,26 @@
 twig:
     file_name_pattern: '*.twig'
     form_themes: ['form/theme.html.twig']
+    globals:
+        # Publisher / host identity shown on the legal pages (mentions légales, confidentialité).
+        # Source: Annuaire des entreprises (SIREN 814299590). Fill `capital` and `rcs` to display them.
+        legal:
+            company: 'CYLAOS ICT'
+            form: 'Société à responsabilité limitée (SARL)'
+            capital: null
+            rcs: null
+            siren: '814 299 590'
+            siret: '814 299 590 00020'
+            vat: 'FR51 814 299 590'
+            address: "2 A rue de l'Amiral L'Hermitte, 50200 Coutances, France"
+            email: 'support@cylaos.com'
+            director: 'Éric de Bel-Air, gérant'
+            host_name: 'Infomaniak Network SA'
+            host_address: 'Rue Eugène-Marziano 25, 1227 Genève, Suisse'
+            host_site: 'https://www.infomaniak.com'
+            host_location: 'Plan-les-Ouates (canton de Genève), Suisse'
+            updated: '17 novembre 2026'
+            pay_site_url: '%env(PAY_SITE_BASE_URL)%'
 
 when@test:
     twig:

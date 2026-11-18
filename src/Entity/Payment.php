@@ -214,9 +214,24 @@ class Payment
         return $this->paymentDate;
     }
 
+    /** What the payer paid. */
     public function getAmount(): float
     {
         return $this->amount;
+    }
+
+    /**
+     * What the Cyclos account is credited with: the payment itself, unless the
+     * client's Stripe configuration credits a different amount for this order.
+     */
+    public function getCreditAmount(): float
+    {
+        return $this->checkoutOrder?->getCreditAmount() ?? $this->amount;
+    }
+
+    public function hasDifferentCredit(): bool
+    {
+        return abs($this->getCreditAmount() - $this->amount) > 0.004;
     }
 
     public function getPayerFirstName(): string

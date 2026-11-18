@@ -50,7 +50,7 @@
                             </td>
                             <td class="cell-muted">{{ payment.reference }}</td>
                             <td>{{ payment.paymentDate|date('d/m/Y H:i') }}</td>
-                            <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €</td>
+                            <td class="cell-primary">{{ payment.amount|number_format(2, ',', ' ') }} €{% if payment.hasDifferentCredit %}<span class="cell-muted" style="display:block;font-weight:400;">crédité : {{ payment.creditAmount|number_format(2, ',', ' ') }}</span>{% endif %}</td>
                             <td>{{ payment.payerFirstName }} {{ payment.payerLastName }}</td>
                             <td class="cell-muted">
                                 {{ payment.payerEmail }}

@@ -373,7 +373,7 @@ class PaymentProcessor
         }
 
         $preview = !$setting->isPaymentCyclosEnabled();
-        $paymentResult = $this->cyclosClient->performPayment($cyclosConfig, $email, $payment->getAmount(), $description, $emissionType, $preview);
+        $paymentResult = $this->cyclosClient->performPayment($cyclosConfig, $email, $payment->getCreditAmount(), $description, $emissionType, $preview);
 
         if (!$paymentResult->success) {
             return $this->fail($payment, $paymentResult->errorMessage ?? 'Erreur inconnue lors du paiement Cyclos');

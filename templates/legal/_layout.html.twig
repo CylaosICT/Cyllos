@@ -1,0 +1,24 @@
+{% extends 'base.html.twig' %}
+
+{# Same content for signed-in users (inside the app shell) and visitors (standalone page). #}
+{% block page_title %}{{ block('legal_title') }}{% endblock %}
+
+{% block body %}
+    <div class="card legal-doc">
+        <div class="card__body">
+            {{ block('legal_content') }}
+        </div>
+    </div>
+{% endblock %}
+
+{% block guest_body %}
+    <div class="login-page">
+        <div class="login-card legal-doc">
+            <p class="text-sm"><a href="{{ path('app_login') }}">&larr; Retour à la connexion</a></p>
+            <h1>{{ block('legal_title') }}</h1>
+            {{ block('legal_content') }}
+        </div>
+    </div>
+{% endblock %}
+
+{% block legal_content %}{% endblock %}

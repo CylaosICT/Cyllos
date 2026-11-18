@@ -122,6 +122,44 @@ class CheckoutServiceTest extends TestCase
         self::assertStringStartsWith('S-', $this->service()->start($this->client(), 'a@b.fr', 25000)->reference);
     }
 
+    public function testAListedAmountCreditsWhatTheClientConfiguredAndIsAnnouncedOnStripe(): void
+    {
+        $client = $this->client();
+        $client->getStripeConfig()->setPayAmountMode(StripeConfig::AMOUNT_MODE_LIST)->setPayAmountChoices('50, 100:150')->setPayCreditUnit('points');
+        $this->cyclos->method('findUserByEmail')->willReturn(new CyclosUser('42', 'part'));
+        $this->cyclos->method('resolveEmissionType')->willReturn('emission.Part');
+
+        $this->stripe->expects(self::once())->method('createCheckoutSession')->willReturnCallback(
+            function (StripeConfig $config, CheckoutOrder $order, string $name): StripeCheckoutSession {
+                self::assertSame(10000, $order->getAmountCents());
+                self::assertSame(15000, $order->getCreditAmountCents());
+                self::assertStringContainsString('150 points', $name);
+
+                return new StripeCheckoutSession('cs_test_2', 'https://checkout.stripe.com/c/pay/cs_test_2');
+            },
+        );
+
+        $this->service()->start($client, 'a@b.fr', 10000);
+    }
+
+    public function testAnAmountOutsideTheClientsListIsRefusedEvenInsideTheRange(): void
+    {
+        $client = $this->client();
+        $client->getStripeConfig()->setPayAmountMode(StripeConfig::AMOUNT_MODE_LIST)->setPayAmountChoices('50, 100');
+        $this->stripe->expects(self::never())->method('createCheckoutSession');
+
+        $this->expectFailure(CheckoutException::INVALID_AMOUNT, fn () => $this->service()->start($client, 'a@b.fr', 7500));
+    }
+
+    public function testFixedAmountOnlyAcceptsTheConfiguredPayment(): void
+    {
+        $client = $this->client();
+        $client->getStripeConfig()->setPayAmountMode(StripeConfig::AMOUNT_MODE_FIXED)->setPayFixedAmount(100);
+        $this->stripe->expects(self::never())->method('createCheckoutSession');
+
+        $this->expectFailure(CheckoutException::INVALID_AMOUNT, fn () => $this->service()->start($client, 'a@b.fr', 5000));
+    }
+
     public function testRefusesWhenTheCyclosAccountDoesNotExistAndNeverCallsStripe(): void
     {
         $this->cyclos->method('findUserByEmail')->willReturn(null);

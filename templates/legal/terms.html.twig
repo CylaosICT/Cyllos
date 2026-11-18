@@ -1,0 +1,38 @@
+{% extends 'legal/_layout.html.twig' %}
+
+{% block title %}Conditions d'utilisation - Cyllos{% endblock %}
+{% block legal_title %}Conditions d'utilisation{% endblock %}
+
+{% block legal_content %}
+    <p class="text-sm text-muted">Dernière mise à jour : {{ legal.updated }}</p>
+
+    <h2>1. Objet</h2>
+    <p>Cyllos, édité par {{ legal.company }}, est une plateforme qui relie les paiements (HelloAsso, Stripe) des structures clientes à leurs comptes Cyclos, et leur donne un espace pour les suivre. Ces conditions régissent l'accès à l'espace d'administration et à l'espace client. Elles complètent le contrat conclu entre {{ legal.company }} et chaque structure cliente, qui prévaut en cas de contradiction.</p>
+
+    <h2>2. Accès et compte</h2>
+    <p>L'accès est réservé aux personnes dont le compte a été créé par {{ legal.company }} ou par la structure cliente. Vos identifiants sont personnels&nbsp;: ne les partagez pas, activez la double authentification dans <em>Réglages</em> et prévenez-nous sans délai en cas de perte ou de suspicion d'accès frauduleux. Vous êtes responsable des actions réalisées avec votre compte.</p>
+
+    <h2>3. Obligations de l'utilisateur</h2>
+    <ul>
+        <li>Utiliser Cyllos conformément à la loi et à sa finalité&nbsp;; ne pas tenter de contourner la sécurité, d'accéder aux données d'un autre client ni de perturber le service.</li>
+        <li>Fournir des informations exactes et protéger les clés et accès des services tiers (Stripe, HelloAsso, Cyclos) qu'il renseigne.</li>
+        <li>Pour les structures clientes&nbsp;: informer leurs payeurs de l'usage de leurs données et rester responsables de l'objet des paiements, de leur comptabilité, de leurs reçus et de leurs remboursements.</li>
+    </ul>
+
+    <h2>4. Rôle de {{ legal.company }}</h2>
+    <p>{{ legal.company }} fournit un service technique&nbsp;: elle ne détient pas les fonds, n'est pas partie à la relation entre la structure et ses payeurs et n'est pas un établissement de paiement. Les paiements sont traités par Stripe ou HelloAsso, selon leurs propres conditions.</p>
+
+    <h2>5. Disponibilité et responsabilité</h2>
+    <p>{{ legal.company }} met en œuvre les moyens raisonnables pour assurer la disponibilité et la sécurité du service, sans garantie d'absence d'interruption (maintenance, incident d'un service tiers). Sa responsabilité est limitée aux dommages directs et prévisibles, dans les limites prévues au contrat avec la structure cliente et sans préjudice des droits que la loi reconnaît à l'utilisateur.</p>
+
+    <h2>6. Suspension</h2>
+    <p>{{ legal.company }} peut suspendre un accès en cas d'usage frauduleux, de risque de sécurité ou de manquement à ces conditions.</p>
+
+    <h2>7. Données personnelles</h2>
+    <p>Voir la <a href="{{ path('legal_privacy') }}">politique de confidentialité</a>.</p>
+
+    <h2>8. Droit applicable</h2>
+    <p>Ces conditions sont soumises au droit français. En cas de litige, les parties recherchent d'abord une solution amiable&nbsp;; à défaut, les tribunaux compétents seront saisis. Contact&nbsp;: <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>.</p>
+
+    {% include 'legal/_links.html.twig' %}
+{% endblock %}

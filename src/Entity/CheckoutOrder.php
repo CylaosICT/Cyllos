@@ -47,6 +47,13 @@ class CheckoutOrder
     #[ORM\Column]
     private int $amountCents;
 
+    /**
+     * What the Cyclos account is credited with, in cents of the Cyclos unit.
+     * Null (older orders) or equal to amountCents: credit = payment.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?int $creditAmountCents = null;
+
     #[ORM\Column(length: 20, enumType: CheckoutOrderStatus::class)]
     private CheckoutOrderStatus $status = CheckoutOrderStatus::Pending;
 
@@ -62,11 +69,12 @@ class CheckoutOrder
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $paidAt = null;
 
-    public function __construct(Client $client, string $email, int $amountCents)
+    public function __construct(Client $client, string $email, int $amountCents, ?int $creditAmountCents = null)
     {
         $this->client = $client;
         $this->email = $email;
         $this->amountCents = $amountCents;
+        $this->creditAmountCents = $creditAmountCents;
         $this->reference = self::generateReference();
         $this->createdAt = new \DateTimeImmutable();
     }
@@ -110,6 +118,17 @@ class CheckoutOrder
     public function getAmount(): float
     {
         return $this->amountCents / 100;
+    }
+
+    /** What the Cyclos account receives (the payment itself unless a different credit was configured). */
+    public function getCreditAmountCents(): int
+    {
+        return $this->creditAmountCents ?? $this->amountCents;
+    }
+
+    public function getCreditAmount(): float
+    {
+        return $this->getCreditAmountCents() / 100;
     }
 
     public function getStatus(): CheckoutOrderStatus

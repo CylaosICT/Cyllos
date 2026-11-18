@@ -42,13 +42,16 @@ class CheckoutService
 
         $email = $this->requireValidEmail($email);
 
-        if ($amountCents < $stripe->getMinAmount() * 100 || $amountCents > $stripe->getMaxAmount() * 100) {
+        // The client's amount rules (range, list of amounts or single amount) decide
+        // both whether this payment is allowed and what the account is credited with.
+        $offer = $stripe->offerFor($amountCents);
+        if ($offer === null) {
             throw new CheckoutException(CheckoutException::INVALID_AMOUNT);
         }
 
         $this->resolveAccount($client, $email);
 
-        $order = new CheckoutOrder($client, $email, $amountCents);
+        $order = new CheckoutOrder($client, $email, $offer->paidCents, $offer->creditCents);
         $this->entityManager->persist($order);
         $this->entityManager->flush();
 
@@ -58,7 +61,7 @@ class CheckoutService
             $session = $this->stripeClient->createCheckoutSession(
                 $stripe,
                 $order,
-                'Alimentation de compte — ' . $client->getName(),
+                $this->productName($client, $stripe, $offer),
                 $base . '/retour/' . rawurlencode($order->getReference()),
                 $base . '?annule=' . rawurlencode($order->getReference()),
             );
@@ -75,6 +78,20 @@ class CheckoutService
 
         return new CheckoutStart($order->getReference(), $session->url);
     }
+
+    /** What the payer reads on Stripe: says what the account will receive when it differs from the payment. */
+    private function productName(Client $client, \App\Entity\StripeConfig $stripe, AmountOffer $offer): string
+    {
+        $name = 'Alimentation de compte — ' . $client->getName();
+        if (!$offer->hasDifferentCredit()) {
+            return $name;
+        }
+
+        $credit = $offer->creditCents / 100;
+
+        return \sprintf('%s (compte crédité de %s %s)', $name, rtrim(rtrim(number_format($credit, 2, ',', ' '), '0'), ','), $stripe->getPayCreditUnit() ?? 'unités');
+    }
+
     /**
      * Pre-check for the payment site's "confirm your account" step: does this
      * e-mail match a Cyclos account that can receive a credit, and of which kind?

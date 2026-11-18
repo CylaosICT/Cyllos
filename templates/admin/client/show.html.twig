@@ -73,8 +73,6 @@
                     <dl class="kv-list">
                         <div class="kv-row"><dt>Clé API</dt><dd><code>{{ stripe.secretKeyHint }}</code></dd></div>
                         <div class="kv-row"><dt>Secret webhook</dt><dd>Enregistré (chiffré)</dd></div>
-                        <div class="kv-row"><dt>Montant min</dt><dd>{{ stripe.minAmount }} €</dd></div>
-                        <div class="kv-row"><dt>Montant max</dt><dd>{{ stripe.maxAmount }} €</dd></div>
                     </dl>
                 </div>
             </div>
@@ -108,7 +106,18 @@
                             {{ constant('App\\Entity\\StripeConfig::PAY_RADII')[stripe.payRadius] ?? 'Légèrement arrondis' }} ·
                             {{ constant('App\\Entity\\StripeConfig::PAY_BACKGROUNDS')[stripe.payBackground] ?? 'Dégradé animé' }}
                         </dd></div>
-                        <div class="kv-row"><dt>Parcours</dt><dd>{{ stripe.payShowConfirmStep ? 'Avec confirmation du compte' : 'Sans étape de confirmation' }}{% if stripe.payQuickAmounts %} · montants rapides : {{ stripe.payQuickAmounts }} €{% endif %}</dd></div>
+                        <div class="kv-row"><dt>Parcours</dt><dd>{{ stripe.payShowConfirmStep ? 'Avec confirmation du compte' : 'Sans étape de confirmation' }}</dd></div>
+                        <div class="kv-row"><dt>Montants</dt><dd>
+                            {% set unit = stripe.payCreditUnit ?? 'unités' %}
+                            {% if stripe.payAmountMode == 'fixed' %}
+                                Montant unique : {{ stripe.payFixedAmount }} €{% if stripe.payFixedCredit and stripe.payFixedCredit != stripe.payFixedAmount %} → {{ stripe.payFixedCredit }} {{ unit }} crédités{% endif %}
+                            {% elseif stripe.payAmountMode == 'list' %}
+                                Au choix :
+                                {% for offer in stripe.amountOffers %}{{ offer.paidCents / 100 }} €{% if offer.hasDifferentCredit %} → {{ offer.creditCents / 100 }} {{ unit }}{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}
+                            {% else %}
+                                Fourchette : de {{ stripe.minAmount }} € à {{ stripe.maxAmount }} €{% if stripe.payCreditRate and stripe.payCreditRate != 1 %} · 1 € = {{ stripe.payCreditRate }} {{ unit }}{% endif %}{% if stripe.payQuickAmounts %} · raccourcis : {{ stripe.payQuickAmounts }} €{% endif %}
+                            {% endif %}
+                        </dd></div>
                     </dl>
                 </div>
             </div>

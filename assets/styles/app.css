@@ -2368,3 +2368,29 @@ tbody tr:hover {
 
 @media (max-width: 800px) { .pay-palette__main { grid-template-columns: 1fr; } .pay-preview { position: static; } }
 @media (prefers-reduced-motion: reduce) { .pay-palette__swatch, .pay-preview, .pay-preview__card, .pay-preview__btn, .pay-colorfield__swatch { transition: none; } }
+
+/* Legal pages (mentions légales, confidentialité, conditions) and their footer links */
+.legal-doc { max-width: 820px; line-height: 1.6; }
+.login-card.legal-doc { padding: 1.5rem 1.75rem; }
+.legal-doc h1 { margin: 0.25rem 0 0.5rem; font-size: 1.5rem; }
+.legal-doc h2 { margin: 1.5rem 0 0.4rem; font-size: 1.05rem; }
+.legal-doc ul { padding-left: 1.25rem; }
+.legal-table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.85rem; }
+.legal-table th, .legal-table td { padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; border: 1px solid var(--color-border); }
+.legal-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.25rem 0.9rem; margin: 1rem 0 0; font-size: 0.75rem; }
+.legal-links a { color: var(--color-text-secondary); text-decoration: none; }
+.legal-links a:hover { text-decoration: underline; }
+.sidebar__footer .legal-links { margin: 0 0 0.6rem; justify-content: flex-start; }
+@media (max-width: 640px) { .legal-table { display: block; overflow-x: auto; } }
+
+/* Payment page: choice of the amount mode (range / list / single amount) */
+.mode-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: .75rem; margin-bottom: 1.1rem; }
+.mode-card { display: flex; align-items: flex-start; gap: .7rem; padding: .85rem 1rem; background: var(--color-surface); border: 1.5px solid var(--color-border); border-radius: 12px; cursor: pointer; transition: border-color .18s ease, box-shadow .18s ease, transform .18s cubic-bezier(.2, .8, .2, 1); }
+.mode-card:hover { transform: translateY(-2px); border-color: var(--color-primary); }
+.mode-card.is-on, .mode-card:has(input:checked) { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 22%, transparent); }
+.mode-card input { margin-top: .2rem; flex: none; }
+.mode-card__body { display: flex; flex-direction: column; gap: .2rem; }
+.mode-card__body strong { font-size: .88rem; font-weight: 650; }
+.mode-card__body small { font-size: .78rem; line-height: 1.4; color: var(--color-text-secondary); }
+[data-pay-amount-target="panel"][hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) { .mode-card { transition: none; } .mode-card:hover { transform: none; } }
