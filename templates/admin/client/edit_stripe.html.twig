@@ -1,0 +1,35 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Stripe — {{ client.name }} - Cyllos{% endblock %}
+{% block content_width %}content--wide{% endblock %}
+
+{% block breadcrumb %}<div class="topbar__crumb"><a href="{{ path('admin_client_list') }}">Clients</a> / <a href="{{ path('admin_client_show', {id: client.id}) }}">{{ client.name }}</a> / Stripe</div>{% endblock %}
+{% block page_title %}Stripe{% endblock %}
+
+{% block body %}
+    <div class="card">
+        {{ form_start(form) }}
+            {% if client.logoFilename %}
+                <div class="field-group field-group--row">
+                    {% include 'components/_client_avatar.html.twig' with {client: client, size: 'md'} only %}
+                    <span class="text-sm text-muted">Logo actuel</span>
+                </div>
+            {% endif %}
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Compte Stripe du client</h2>
+                <div class="form-grid form-grid--wide">
+                    {{ form_row(form.secretKey) }}
+                    {{ form_row(form.webhookSecret) }}
+                </div>
+            </div>
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Type de règlement</h2>
+                {% include 'admin/client/_amount_rules.html.twig' with {form: form} only %}
+            </div>
+            <div class="form-footer">
+                <a class="btn btn--ghost" href="{{ path('admin_client_show', {id: client.id}) }}">Annuler</a>
+                <button class="btn" type="submit">Enregistrer</button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

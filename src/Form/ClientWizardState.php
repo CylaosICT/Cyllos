@@ -87,6 +87,13 @@ class ClientWizardState
         $data = $this->all()['stripe'] ?? [];
         $config->setMinAmount($data['minAmount'] ?? 5);
         $config->setMaxAmount($data['maxAmount'] ?? 250);
+        $config->setPayAmountMode($data['payAmountMode'] ?? null);
+        $config->setPayAmountChoices($data['payAmountChoices'] ?? null);
+        $config->setPayFixedAmount($data['payFixedAmount'] ?? null);
+        $config->setPayFixedCredit($data['payFixedCredit'] ?? null);
+        $config->setPayCreditRate($data['payCreditRate'] ?? null);
+        $config->setPayCreditUnit($data['payCreditUnit'] ?? null);
+        $config->setPayQuickAmounts($data['payQuickAmounts'] ?? null);
         $config->setBrandPrimaryColor($data['brandPrimaryColor'] ?? null);
         $config->setBrandBackgroundColor($data['brandBackgroundColor'] ?? null);
         $config->setBrandSurfaceColor($data['brandSurfaceColor'] ?? null);

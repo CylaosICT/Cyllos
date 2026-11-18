@@ -76,7 +76,6 @@ class PayPageAdminTest extends WebTestCase
         $form['pay_page[payBackground]'] = 'shapes';
         $form['pay_page[payTitle]'] = 'Recharger mon compte';
         $form['pay_page[payButtonLabel]'] = 'Régler {montant}';
-        $form['pay_page[payQuickAmounts]'] = '10, 20, 50';
         $confirmStep = $form->get('pay_page[payShowConfirmStep]');
         self::assertInstanceOf(ChoiceFormField::class, $confirmStep);
         $confirmStep->untick();
@@ -93,76 +92,7 @@ class PayPageAdminTest extends WebTestCase
         self::assertSame('shapes', $config->getPayBackground());
         self::assertSame('Recharger mon compte', $config->getPayTitle());
         self::assertSame('Régler {montant}', $config->getPayButtonLabel());
-        self::assertSame([10, 20, 50], $config->getPayQuickAmountList());
         self::assertFalse($config->isPayShowConfirmStep());
-    }
-
-    public function testRejectsQuickAmountsOutsideTheClientBounds(): void
-    {
-        $crawler = $this->httpClient->request('GET', $this->url());
-        $form = $crawler->selectButton('Enregistrer')->form();
-        $form['pay_page[payQuickAmounts]'] = '10, 999';
-        $this->httpClient->submit($form);
-
-        self::assertResponseStatusCodeSame(422);
-    }
-
-    public function testSavesAListOfAmountsWithADifferentCredit(): void
-    {
-        $crawler = $this->httpClient->request('GET', $this->url());
-        self::assertSelectorExists('[data-controller="pay-amount"]');
-        self::assertCount(3, $crawler->filter('input[name="pay_page[payAmountMode]"]'));
-
-        $form = $crawler->selectButton('Enregistrer')->form();
-        $form['pay_page[payAmountMode]'] = 'list';
-        $form['pay_page[payAmountChoices]'] = '50, 100:150 ; 200:320';
-        $form['pay_page[payCreditUnit]'] = 'points';
-        $this->httpClient->submit($form);
-
-        self::assertResponseRedirects('/admin/clients/' . $this->client->getId());
-        $this->entityManager->clear();
-        $config = $this->entityManager->getRepository(StripeConfig::class)->findOneBy([]);
-        self::assertInstanceOf(StripeConfig::class, $config);
-        self::assertSame('list', $config->getPayAmountMode());
-        self::assertSame('50,100:150,200:320', $config->getPayAmountChoices());
-        self::assertSame('points', $config->getPayCreditUnit());
-        self::assertSame(15000, $config->offerFor(10000)?->creditCents);
-        self::assertNull($config->offerFor(7500));
-
-        $this->httpClient->request('GET', '/admin/clients/' . $this->client->getId());
-        self::assertSelectorTextContains('body', '100 € → 150 points');
-    }
-
-    public function testSavesASingleAmountWithADifferentCredit(): void
-    {
-        $crawler = $this->httpClient->request('GET', $this->url());
-        $form = $crawler->selectButton('Enregistrer')->form();
-        $form['pay_page[payAmountMode]'] = 'fixed';
-        $form['pay_page[payFixedAmount]'] = '100';
-        $form['pay_page[payFixedCredit]'] = '150';
-        $this->httpClient->submit($form);
-
-        self::assertResponseRedirects('/admin/clients/' . $this->client->getId());
-        $this->entityManager->clear();
-        $config = $this->entityManager->getRepository(StripeConfig::class)->findOneBy([]);
-        self::assertInstanceOf(StripeConfig::class, $config);
-        self::assertSame(15000, $config->offerFor(10000)?->creditCents);
-    }
-
-    public function testRejectsAnIncompleteAmountConfiguration(): void
-    {
-        $crawler = $this->httpClient->request('GET', $this->url());
-        $form = $crawler->selectButton('Enregistrer')->form();
-        $form['pay_page[payAmountMode]'] = 'list';
-        $form['pay_page[payAmountChoices]'] = '';
-        $this->httpClient->submit($form);
-        self::assertResponseStatusCodeSame(422);
-
-        $crawler = $this->httpClient->request('GET', $this->url());
-        $form = $crawler->selectButton('Enregistrer')->form();
-        $form['pay_page[payAmountMode]'] = 'fixed';
-        $this->httpClient->submit($form);
-        self::assertResponseStatusCodeSame(422);
     }
 
     public function testRejectsAnInvalidColour(): void

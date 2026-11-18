@@ -4,7 +4,9 @@ namespace App\Form;
 
 use App\Entity\StripeConfig;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\ChoiceType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -61,11 +63,60 @@ class StripeConfigType extends AbstractType
                     : 'Laisser vide pour conserver le secret actuel.',
                 'row_attr' => ['class' => 'form-row--span2'],
             ])
+            // --- Amounts: how the payer chooses what to pay, and what the Cyclos account receives.
+            // Shown by admin/client/_amount_rules.html.twig, one set of fields per mode.
+            ->add('payAmountMode', ChoiceType::class, [
+                'label' => 'Type de règlement',
+                'expanded' => true,
+                'required' => true,
+                'choices' => array_flip(StripeConfig::AMOUNT_MODES),
+            ])
             ->add('minAmount', IntegerType::class, [
-                'label' => 'Montant minimum par paiement (€)',
+                'label' => 'Montant minimum (€)',
+                'help' => 'Plus petit montant que la personne peut payer.',
             ])
             ->add('maxAmount', IntegerType::class, [
-                'label' => 'Montant maximum par paiement (€)',
+                'label' => 'Montant maximum (€)',
+                'help' => 'Plus grand montant que la personne peut payer.',
+            ])
+            ->add('payQuickAmounts', TextType::class, [
+                'label' => 'Boutons de montants rapides (€)',
+                'required' => false,
+                'help' => 'Facultatif. Jusqu\'à 6 raccourcis, entiers séparés par des virgules, dans les bornes. Ex. 10, 20, 50, 100.',
+                'attr' => ['placeholder' => '10, 20, 50, 100', 'autocomplete' => 'off'],
+            ])
+            ->add('payCreditRate', NumberType::class, [
+                'label' => 'Crédit par euro payé',
+                'required' => false,
+                'scale' => 4,
+                'html5' => true,
+                'help' => 'Facultatif. Unités créditées dans Cyclos pour 1 € payé. Vide = 1 pour 1 (ex. 1,5 : 100 € payés → 150 unités).',
+                'attr' => ['min' => 0, 'step' => '0.0001', 'inputmode' => 'decimal', 'placeholder' => '1'],
+            ])
+            ->add('payAmountChoices', TextType::class, [
+                'label' => 'Montants proposés (€)',
+                'required' => false,
+                'help' => 'Séparés par des virgules, 12 au plus. Pour créditer un autre montant que celui payé : « payé:crédité ». Ex. 50, 100:150, 200:320.',
+                'attr' => ['placeholder' => '50, 100:150, 200', 'autocomplete' => 'off'],
+                'row_attr' => ['class' => 'form-row--span2'],
+            ])
+            ->add('payFixedAmount', IntegerType::class, [
+                'label' => 'Montant payé (€)',
+                'required' => false,
+                'help' => 'Montant unique que la personne règle sur Stripe.',
+                'attr' => ['min' => 1],
+            ])
+            ->add('payFixedCredit', IntegerType::class, [
+                'label' => 'Montant crédité dans Cyclos',
+                'required' => false,
+                'help' => 'Facultatif. Vide = identique au montant payé (ex. 100 € payés, 150 unités créditées).',
+                'attr' => ['min' => 1],
+            ])
+            ->add('payCreditUnit', TextType::class, [
+                'label' => 'Nom de l\'unité créditée',
+                'required' => false,
+                'help' => 'Affiché à côté du montant crédité (ex. « unités », « points »). Vide = « € », ou « unités » quand le crédit diffère du paiement.',
+                'attr' => ['maxlength' => 20, 'placeholder' => 'unités'],
             ]);
 
         if (!$options['branding']) {
