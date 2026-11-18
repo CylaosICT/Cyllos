@@ -126,6 +126,9 @@ class ClientWizardTest extends WebTestCase
             'stripe_config[webhookSecret]' => 'whsec_abcdefghijklmnopqrstuvwx',
             'stripe_config[minAmount]' => '5',
             'stripe_config[maxAmount]' => '300',
+            'stripe_config[payAmountMode]' => 'list',
+            'stripe_config[payAmountChoices]' => '50, 100:150',
+            'stripe_config[payCreditUnit]' => 'points',
         ]));
         self::assertResponseRedirects('/admin/clients/new/cyclos');
         $crawler = $this->httpClient->followRedirect();
@@ -156,6 +159,10 @@ class ClientWizardTest extends WebTestCase
         self::assertTrue($stripe->isLiveMode());
         self::assertSame('rk_live_…1234', $stripe->getSecretKeyHint());
         self::assertSame(300, $stripe->getMaxAmount());
+        // The "type de règlement" chosen in the wizard is kept through the next steps.
+        self::assertSame('list', $stripe->getPayAmountMode());
+        self::assertSame(15000, $stripe->offerFor(10000)?->creditCents);
+        self::assertSame('points', $stripe->getPayCreditUnit());
 
         $encryptor = self::getContainer()->get(SecretEncryptor::class);
         self::assertNotSame(self::FAKE_LIVE_KEY, $stripe->getSecretKeyEncrypted());

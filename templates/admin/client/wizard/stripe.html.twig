@@ -17,9 +17,11 @@
                 <div class="form-grid form-grid--wide">
                     {{ form_row(form.secretKey) }}
                     {{ form_row(form.webhookSecret) }}
-                    {{ form_row(form.minAmount) }}
-                    {{ form_row(form.maxAmount) }}
                 </div>
+            </div>
+            <div class="field-group">
+                <h2 style="font-size:1rem;margin-bottom:0.35rem;">Type de règlement</h2>
+                {% include 'admin/client/_amount_rules.html.twig' with {form: form} only %}
             </div>
             <div class="field-group">
                 <h2 style="font-size:1rem;margin-bottom:0.35rem;">Identité de la page de paiement</h2>

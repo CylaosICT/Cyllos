@@ -392,6 +392,13 @@ class ClientController extends AbstractController
                 'webhookSecret' => $form->get('webhookSecret')->getData() ?: $this->wizardState->stripeWebhookSecret(),
                 'minAmount' => $config->getMinAmount(),
                 'maxAmount' => $config->getMaxAmount(),
+                'payAmountMode' => $config->getPayAmountMode(),
+                'payAmountChoices' => $config->getPayAmountChoices(),
+                'payFixedAmount' => $config->getPayFixedAmount(),
+                'payFixedCredit' => $config->getPayFixedCredit(),
+                'payCreditRate' => $config->getPayCreditRate(),
+                'payCreditUnit' => $config->getPayCreditUnit(),
+                'payQuickAmounts' => $config->getPayQuickAmounts(),
                 'brandPrimaryColor' => $config->getBrandPrimaryColor(),
                 'brandBackgroundColor' => $config->getBrandBackgroundColor(),
                 'brandSurfaceColor' => $config->getBrandSurfaceColor(),
@@ -725,10 +732,9 @@ class ClientController extends AbstractController
             return $this->redirectToRoute('admin_client_show', ['id' => $client->getId()]);
         }
 
-        return $this->render('admin/client/edit_section.html.twig', [
+        return $this->render('admin/client/edit_stripe.html.twig', [
             'client' => $client,
             'form' => $form,
-            'section_title' => 'Stripe',
         ]);
     }
 

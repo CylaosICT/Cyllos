@@ -1,0 +1,37 @@
+{#
+    "Type de règlement" of a Stripe client: how the payer chooses the amount, and what the Cyclos account is credited with.
+    Expects `form` (StripeConfigType). Only the fields of the selected mode are shown: assets/controllers/pay_amount_controller.js
+#}
+<div data-controller="pay-amount">
+    <p class="text-sm text-muted" style="margin-bottom:1rem;">
+        Choisissez ce que la personne peut payer, et ce que son compte Cyclos reçoit. Le montant crédité peut différer du montant payé
+        (ex. 100 € payés sur Stripe, 150 unités créditées). Ces règles sont revérifiées côté serveur à chaque paiement.
+    </p>
+    <div class="mode-cards" role="radiogroup" aria-label="Type de règlement">
+        {% for choice in form.payAmountMode %}
+            {% set parts = choice.vars.label|split(' : ', 2) %}
+            <label class="mode-card">
+                {{ form_widget(choice, {attr: {'data-pay-amount-target': 'mode', 'data-action': 'change->pay-amount#update'}}) }}
+                <span class="mode-card__body"><strong>{{ parts[0] }}</strong><small>{{ parts[1] ?? '' }}</small></span>
+            </label>
+        {% endfor %}
+    </div>
+    {{ form_errors(form.payAmountMode) }}
+
+    <div class="form-grid form-grid--wide" data-pay-amount-target="panel" data-modes="range">
+        {{ form_row(form.minAmount) }}
+        {{ form_row(form.maxAmount) }}
+        {{ form_row(form.payQuickAmounts) }}
+        {{ form_row(form.payCreditRate) }}
+    </div>
+    <div class="form-grid form-grid--wide" data-pay-amount-target="panel" data-modes="list">
+        {{ form_row(form.payAmountChoices) }}
+    </div>
+    <div class="form-grid form-grid--wide" data-pay-amount-target="panel" data-modes="fixed">
+        {{ form_row(form.payFixedAmount) }}
+        {{ form_row(form.payFixedCredit) }}
+    </div>
+    <div class="form-grid form-grid--wide">
+        {{ form_row(form.payCreditUnit) }}
+    </div>
+</div>
