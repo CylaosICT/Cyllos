@@ -243,9 +243,12 @@ class StripeConfig
     #[Assert\LessThanOrEqual(10000)]
     private ?float $payCreditRate = null;
 
-    /** Name of the credited unit shown to payers, e.g. "unités", "points" (empty = "€", or "unités" when it differs). */
-    #[ORM\Column(length: 20, nullable: true)]
-    #[Assert\Length(max: 20)]
+    /**
+     * Name of the credited unit shown to payers, set by the client: "cigogne" or "cigogne|cigognes"
+     * (singular|plural; a single word is used for both). Empty = "unités" (or "€" when credit = payment).
+     */
+    #[ORM\Column(length: 41, nullable: true)]
+    #[Assert\Regex(pattern: '/^[^|]{1,20}(?:\|[^|]{1,20})?$/u', message: 'Un mot ou une expression de 20 caractères au plus, ou « singulier|pluriel » (ex. cigogne|cigognes).')]
     private ?string $payCreditUnit = null;
 
     public function getPayAmountMode(): string
@@ -313,6 +316,21 @@ class StripeConfig
     public function getPayCreditUnit(): ?string
     {
         return $this->payCreditUnit;
+    }
+
+    /**
+     * The unit's name for an amount: the client's own word (singular below 2 units,
+     * plural otherwise), or "unités" when none was set.
+     */
+    public function creditUnitLabel(int $creditCents): string
+    {
+        if ($this->payCreditUnit === null) {
+            return 'unités';
+        }
+
+        $words = explode('|', $this->payCreditUnit);
+
+        return $creditCents < 200 ? $words[0] : ($words[1] ?? $words[0]);
     }
 
     public function setPayCreditUnit(?string $unit): static

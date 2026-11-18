@@ -18,6 +18,10 @@
     </div>
     {{ form_errors(form.payAmountMode) }}
 
+    <div class="form-grid form-grid--wide">
+        {{ form_row(form.payCreditUnit) }}
+    </div>
+
     <div class="form-grid form-grid--wide" data-pay-amount-target="panel" data-modes="range">
         {{ form_row(form.minAmount) }}
         {{ form_row(form.maxAmount) }}
@@ -30,8 +34,5 @@
     <div class="form-grid form-grid--wide" data-pay-amount-target="panel" data-modes="fixed">
         {{ form_row(form.payFixedAmount) }}
         {{ form_row(form.payFixedCredit) }}
-    </div>
-    <div class="form-grid form-grid--wide">
-        {{ form_row(form.payCreditUnit) }}
     </div>
 </div>

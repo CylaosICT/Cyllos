@@ -89,7 +89,7 @@ class CheckoutService
 
         $credit = $offer->creditCents / 100;
 
-        return \sprintf('%s (compte crédité de %s %s)', $name, rtrim(rtrim(number_format($credit, 2, ',', ' '), '0'), ','), $stripe->getPayCreditUnit() ?? 'unités');
+        return \sprintf('%s (compte crédité de %s %s)', $name, rtrim(rtrim(number_format($credit, 2, ',', ' '), '0'), ','), $stripe->creditUnitLabel($offer->creditCents));
     }
 
     /**

@@ -113,10 +113,10 @@ class StripeConfigType extends AbstractType
                 'attr' => ['min' => 1],
             ])
             ->add('payCreditUnit', TextType::class, [
-                'label' => 'Nom de l\'unité créditée',
+                'label' => 'Nom de l\'unité créditée (le terme affiché aux payeurs)',
                 'required' => false,
-                'help' => 'Affiché à côté du montant crédité (ex. « unités », « points »). Vide = « € », ou « unités » quand le crédit diffère du paiement.',
-                'attr' => ['maxlength' => 20, 'placeholder' => 'unités'],
+                'help' => 'Le mot de votre client pour ce que reçoit le compte : « cigogne » donnera « 200 cigogne » ; « cigogne|cigognes » (singulier|pluriel) donnera « 1 cigogne », « 200 cigognes ». Vide = « unités ».',
+                'attr' => ['maxlength' => 41, 'placeholder' => 'cigogne|cigognes', 'autocomplete' => 'off'],
             ]);
 
         if (!$options['branding']) {
