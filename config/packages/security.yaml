@@ -39,6 +39,7 @@ security:
         - { path: ^/webhook/stripe, roles: PUBLIC_ACCESS }
         - { path: ^/internal/(checkout|account-check)$, roles: PUBLIC_ACCESS }
         - { path: ^/health$, roles: PUBLIC_ACCESS }
+        - { path: ^/(mentions-legales|confidentialite|conditions-utilisation)$, roles: PUBLIC_ACCESS }
         - { path: ^/dev, roles: ROLE_DEVELOPER }
         - { path: ^/admin, roles: ROLE_ADMIN }
         - { path: ^/app, roles: ROLE_CLIENT }

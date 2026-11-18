@@ -88,6 +88,7 @@
                         </a>
                     </nav>
                     <div class="sidebar__footer">
+                        {% include 'legal/_links.html.twig' %}
                         <div class="user-card">
                             {% if is_granted('ROLE_ADMIN') %}
                                 <span class="avatar user-card__avatar">{% include 'components/_cylaos_logo.html.twig' %}</span>

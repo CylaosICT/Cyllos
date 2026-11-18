@@ -1,0 +1,38 @@
+{% extends 'legal/_layout.html.twig' %}
+
+{% block title %}Mentions légales - Cyllos{% endblock %}
+{% block legal_title %}Mentions légales{% endblock %}
+
+{% block legal_content %}
+    <p class="text-sm text-muted">Dernière mise à jour : {{ legal.updated }}</p>
+
+    <h2>Éditeur du site</h2>
+    <p>
+        Le site <strong>Cyllos</strong> (espace d'administration et espace client) est édité par <strong>{{ legal.company }}</strong>, {{ legal.form }}{% if legal.capital %} au capital de {{ legal.capital }}{% endif %}.<br>
+        Siège social : {{ legal.address }}<br>
+        SIREN : {{ legal.siren }} · SIRET du siège : {{ legal.siret }}{% if legal.rcs %} · RCS {{ legal.rcs }}{% endif %}<br>
+        N° de TVA intracommunautaire : {{ legal.vat }}<br>
+        Contact : <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>
+    </p>
+    <p>Directeur de la publication : {{ legal.director }}.</p>
+
+    <h2>Hébergement</h2>
+    <p>
+        Le site est hébergé par <strong>{{ legal.host_name }}</strong>, {{ legal.host_address }} (<a href="{{ legal.host_site }}" rel="noopener noreferrer">{{ legal.host_site|replace({'https://': ''}) }}</a>).<br>
+        Les serveurs sont situés à {{ legal.host_location }}.
+    </p>
+
+    <h2>Services tiers</h2>
+    <p>Les paiements par carte bancaire sont traités par <strong>Stripe Payments Europe, Ltd.</strong> (Dublin, Irlande) et, selon la configuration de chaque client, par <strong>HelloAsso</strong> (association loi 1901, Bordeaux). Les comptes sont tenus dans le logiciel <strong>Cyclos</strong> exploité par la structure cliente. Aucune donnée de carte bancaire n'est traitée ni conservée par Cyllos.</p>
+
+    <h2>Propriété intellectuelle</h2>
+    <p>Le site, son interface, ses textes et ses visuels sont la propriété de {{ legal.company }}, hors logos et marques des clients et des services tiers, qui appartiennent à leurs titulaires. Toute reproduction non autorisée est interdite.</p>
+
+    <h2>Données personnelles</h2>
+    <p>Voir la <a href="{{ path('legal_privacy') }}">politique de confidentialité</a>.</p>
+
+    <h2>Contact</h2>
+    <p>Pour toute question ou signalement : <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>.</p>
+
+    {% include 'legal/_links.html.twig' %}
+{% endblock %}

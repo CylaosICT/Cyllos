@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Payment\AmountOffer;
 use App\Repository\StripeConfigRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -198,6 +199,217 @@ class StripeConfig
     #[ORM\Column(length: 60, nullable: true)]
     private ?string $payQuickAmounts = null;
 
+    // --- Amounts: how the payer picks what to pay, and what the Cyclos account receives.
+
+    public const AMOUNT_MODE_RANGE = 'range';
+    public const AMOUNT_MODE_LIST = 'list';
+    public const AMOUNT_MODE_FIXED = 'fixed';
+
+    /** Allowed amount modes: key => label. */
+    public const AMOUNT_MODES = [
+        self::AMOUNT_MODE_RANGE => 'Fourchette : la personne saisit le montant (entre un minimum et un maximum)',
+        self::AMOUNT_MODE_LIST => 'Montants au choix : une liste de montants que vous définissez',
+        self::AMOUNT_MODE_FIXED => 'Montant unique : un seul montant, non modifiable',
+    ];
+
+    public const MAX_AMOUNT_CHOICES = 12;
+
+    /** One entry of the list: "100" (credit = payment) or "100:150" (pay 100, credited 150). Whole numbers. */
+    private const CHOICE_PATTERN = '/^([1-9][0-9]{0,5})(?::([1-9][0-9]{0,6}))?$/';
+
+    #[ORM\Column(length: 10, options: ['default' => 'range'])]
+    #[Assert\Choice(choices: ['range', 'list', 'fixed'], message: 'Mode de montant inconnu.')]
+    private string $payAmountMode = self::AMOUNT_MODE_RANGE;
+
+    /** Comma-separated whole amounts for the "list" mode: "50,100:150,200". */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $payAmountChoices = null;
+
+    /** "fixed" mode: what the payer pays, in whole euros. */
+    #[ORM\Column(nullable: true)]
+    #[Assert\Positive]
+    #[Assert\LessThanOrEqual(999999)]
+    private ?int $payFixedAmount = null;
+
+    /** "fixed" mode: what the Cyclos account is credited with (empty = same as the payment). */
+    #[ORM\Column(nullable: true)]
+    #[Assert\Positive]
+    #[Assert\LessThanOrEqual(9999999)]
+    private ?int $payFixedCredit = null;
+
+    /** "range" mode: units credited per euro paid (empty = 1). */
+    #[ORM\Column(type: 'float', nullable: true)]
+    #[Assert\Positive]
+    #[Assert\LessThanOrEqual(10000)]
+    private ?float $payCreditRate = null;
+
+    /** Name of the credited unit shown to payers, e.g. "unités", "points" (empty = "€", or "unités" when it differs). */
+    #[ORM\Column(length: 20, nullable: true)]
+    #[Assert\Length(max: 20)]
+    private ?string $payCreditUnit = null;
+
+    public function getPayAmountMode(): string
+    {
+        return $this->payAmountMode;
+    }
+
+    public function setPayAmountMode(?string $mode): static
+    {
+        $this->payAmountMode = $mode === null || $mode === '' ? self::AMOUNT_MODE_RANGE : $mode;
+
+        return $this;
+    }
+
+    public function getPayAmountChoices(): ?string
+    {
+        return $this->payAmountChoices;
+    }
+
+    public function setPayAmountChoices(?string $choices): static
+    {
+        // Normalised to "50,100:150": separators (comma, semicolon, space, new line) and empty entries dropped.
+        $parts = preg_split('/[\s,;]+/', (string) $choices, -1, \PREG_SPLIT_NO_EMPTY) ?: [];
+        $this->payAmountChoices = $parts === [] ? null : implode(',', $parts);
+
+        return $this;
+    }
+
+    public function getPayFixedAmount(): ?int
+    {
+        return $this->payFixedAmount;
+    }
+
+    public function setPayFixedAmount(?int $amount): static
+    {
+        $this->payFixedAmount = $amount;
+
+        return $this;
+    }
+
+    public function getPayFixedCredit(): ?int
+    {
+        return $this->payFixedCredit;
+    }
+
+    public function setPayFixedCredit(?int $credit): static
+    {
+        $this->payFixedCredit = $credit;
+
+        return $this;
+    }
+
+    public function getPayCreditRate(): ?float
+    {
+        return $this->payCreditRate;
+    }
+
+    public function setPayCreditRate(?float $rate): static
+    {
+        $this->payCreditRate = $rate;
+
+        return $this;
+    }
+
+    public function getPayCreditUnit(): ?string
+    {
+        return $this->payCreditUnit;
+    }
+
+    public function setPayCreditUnit(?string $unit): static
+    {
+        $this->payCreditUnit = self::blankToNull($unit);
+
+        return $this;
+    }
+
+    /**
+     * The fixed offers of the "list" and "fixed" modes (empty in "range" mode,
+     * where the payer types any amount).
+     *
+     * @return list<AmountOffer>
+     */
+    public function getAmountOffers(): array
+    {
+        if ($this->payAmountMode === self::AMOUNT_MODE_FIXED) {
+            return $this->payFixedAmount === null
+                ? []
+                : [new AmountOffer($this->payFixedAmount * 100, ($this->payFixedCredit ?? $this->payFixedAmount) * 100)];
+        }
+
+        if ($this->payAmountMode !== self::AMOUNT_MODE_LIST || $this->payAmountChoices === null) {
+            return [];
+        }
+
+        $offers = [];
+        foreach (explode(',', $this->payAmountChoices) as $entry) {
+            if (preg_match(self::CHOICE_PATTERN, $entry, $m) === 1) {
+                $offers[] = new AmountOffer((int) $m[1] * 100, (int) ($m[2] ?? $m[1]) * 100);
+            }
+        }
+
+        return $offers;
+    }
+
+    /**
+     * What this configuration allows for the amount a payer asks to pay: the
+     * matching offer (with the credit it brings), or null when not allowed.
+     * The single rule used server-side when a payment starts.
+     */
+    public function offerFor(int $paidCents): ?AmountOffer
+    {
+        if ($this->payAmountMode === self::AMOUNT_MODE_RANGE) {
+            if ($paidCents < $this->minAmount * 100 || $paidCents > $this->maxAmount * 100) {
+                return null;
+            }
+
+            return new AmountOffer($paidCents, $this->payCreditRate === null ? $paidCents : (int) round($paidCents * $this->payCreditRate));
+        }
+
+        foreach ($this->getAmountOffers() as $offer) {
+            if ($offer->paidCents === $paidCents) {
+                return $offer;
+            }
+        }
+
+        return null;
+    }
+
+    #[Assert\Callback]
+    public function validateAmountMode(\Symfony\Component\Validator\Context\ExecutionContextInterface $context): void
+    {
+        if ($this->payAmountMode === self::AMOUNT_MODE_FIXED && $this->payFixedAmount === null) {
+            $context->buildViolation('Indiquez le montant unique que la personne devra payer.')->atPath('payFixedAmount')->addViolation();
+        }
+
+        if ($this->payAmountMode !== self::AMOUNT_MODE_LIST) {
+            return;
+        }
+
+        $problem = null;
+        $paid = [];
+        $entries = $this->payAmountChoices === null ? [] : explode(',', $this->payAmountChoices);
+        if ($entries === []) {
+            $problem = 'Indiquez au moins un montant.';
+        } elseif (\count($entries) > self::MAX_AMOUNT_CHOICES) {
+            $problem = \sprintf('Au plus %d montants.', self::MAX_AMOUNT_CHOICES);
+        } else {
+            foreach ($entries as $entry) {
+                if (preg_match(self::CHOICE_PATTERN, $entry, $m) !== 1) {
+                    $problem = 'Montants : des nombres entiers séparés par des virgules, avec « payé:crédité » si le crédit diffère (ex. 50, 100:150, 200).';
+                    break;
+                }
+                if (\in_array($m[1], $paid, true)) {
+                    $problem = 'Chaque montant payé ne doit apparaître qu\'une fois.';
+                    break;
+                }
+                $paid[] = $m[1];
+            }
+        }
+        if ($problem !== null) {
+            $context->buildViolation($problem)->atPath('payAmountChoices')->addViolation();
+        }
+    }
+
     public function getPayFont(): ?string
     {
         return $this->payFont;
@@ -331,7 +543,8 @@ class StripeConfig
     #[Assert\Callback]
     public function validateQuickAmounts(\Symfony\Component\Validator\Context\ExecutionContextInterface $context): void
     {
-        if ($this->payQuickAmounts === null) {
+        // Quick amounts only exist in "range" mode.
+        if ($this->payQuickAmounts === null || $this->payAmountMode !== self::AMOUNT_MODE_RANGE) {
             return;
         }
 
@@ -484,7 +697,7 @@ class StripeConfig
     #[Assert\Callback]
     public function validateAmountRange(\Symfony\Component\Validator\Context\ExecutionContextInterface $context): void
     {
-        if ($this->minAmount > $this->maxAmount) {
+        if ($this->payAmountMode === self::AMOUNT_MODE_RANGE && $this->minAmount > $this->maxAmount) {
             $context->buildViolation('Le montant minimum ne peut pas dépasser le montant maximum.')
                 ->atPath('minAmount')
                 ->addViolation();

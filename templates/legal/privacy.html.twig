@@ -1,0 +1,45 @@
+{% extends 'legal/_layout.html.twig' %}
+
+{% block title %}Politique de confidentialité - Cyllos{% endblock %}
+{% block legal_title %}Politique de confidentialité{% endblock %}
+
+{% block legal_content %}
+    <p class="text-sm text-muted">Dernière mise à jour : {{ legal.updated }}</p>
+
+    <h2>Qui est responsable&nbsp;?</h2>
+    <ul>
+        <li><strong>Utilisateurs de Cyllos</strong> (équipe, clients connectés)&nbsp;: {{ legal.company }}, {{ legal.address }}, est responsable du traitement.</li>
+        <li><strong>Paiements des payeurs</strong> (adresse e-mail du compte à créditer, montant, références)&nbsp;: la structure cliente est responsable du traitement&nbsp;; {{ legal.company }} agit comme son sous-traitant, au titre du contrat conclu avec elle. La page publique de paiement{% if legal.pay_site_url %} a sa propre <a href="{{ legal.pay_site_url }}/confidentialite" rel="noopener noreferrer">politique de confidentialité</a>{% else %} a sa propre politique de confidentialité{% endif %}.</li>
+    </ul>
+
+    <h2>Données traitées</h2>
+    <table class="table legal-table">
+        <thead><tr><th>Données</th><th>Finalité</th><th>Base légale</th><th>Durée</th></tr></thead>
+        <tbody>
+            <tr><td>Adresse e-mail, rôle, mot de passe (haché), thème, secret de double authentification (chiffré)</td><td>Créer et sécuriser votre compte, vous authentifier</td><td>Exécution du contrat</td><td>Durée du compte</td></tr>
+            <tr><td>Paiements (e-mail du payeur, montant, état, références HelloAsso / Stripe / Cyclos)</td><td>Enregistrer et suivre les paiements, créditer les comptes Cyclos</td><td>Exécution du contrat, obligation comptable</td><td>Selon la configuration de la structure, puis durée légale de conservation comptable</td></tr>
+            <tr><td>Journal d'activité (actions, adresse IP, horodatage)</td><td>Sécurité, traçabilité, détection d'abus</td><td>Intérêt légitime</td><td>30 jours par défaut (paramétrable)</td></tr>
+            <tr><td>Cookie de session et jeton de sécurité (CSRF)</td><td>Maintenir la connexion, protéger les formulaires</td><td>Strictement nécessaires</td><td>Session</td></tr>
+        </tbody>
+    </table>
+    <p>Les clés et mots de passe de services tiers (Stripe, HelloAsso, Cyclos) saisis par les administrateurs sont <strong>chiffrés</strong> en base de données. Aucune donnée n'est utilisée à des fins publicitaires ni de profilage.</p>
+
+    <h2>Cookies</h2>
+    <p>Cyllos n'utilise que des cookies <strong>strictement nécessaires</strong> (session, protection CSRF). Ils ne requièrent pas de consentement. Aucun outil de mesure d'audience ni traceur publicitaire n'est utilisé.</p>
+    <p>Les pages chargent la police <strong>Inter</strong> depuis les serveurs de Google Fonts (Google Ireland Ltd.), ce qui transmet votre adresse IP à Google. Vous pouvez vous y opposer en bloquant ces requêtes dans votre navigateur&nbsp;: la page s'affichera avec une police de remplacement.</p>
+
+    <h2>Destinataires</h2>
+    <ul>
+        <li>Les administrateurs de {{ legal.company }} et, pour leurs propres données, les utilisateurs de la structure cliente.</li>
+        <li>Les prestataires techniques&nbsp;: <strong>{{ legal.host_name }}</strong> (hébergement en Suisse, {{ legal.host_location }}&nbsp;; pays reconnu comme adéquat par la Commission européenne), <strong>Stripe</strong> et <strong>HelloAsso</strong> (traitement des paiements), le logiciel <strong>Cyclos</strong> de la structure cliente.</li>
+        <li>Stripe peut transférer des données hors de l'Union européenne avec les garanties prévues par le RGPD (clauses contractuelles types, cadre UE-États-Unis).</li>
+    </ul>
+
+    <h2>Vos droits</h2>
+    <p>Vous pouvez demander l'accès, la rectification, l'effacement, la limitation, la portabilité de vos données et vous opposer à leur traitement en écrivant à <a href="mailto:{{ legal.email }}">{{ legal.email }}</a>. Nous répondons sous un mois. Vous pouvez aussi saisir la <a href="https://www.cnil.fr/fr/plaintes" rel="noopener noreferrer">CNIL</a>.</p>
+
+    <h2>Sécurité</h2>
+    <p>Connexion HTTPS, mots de passe hachés, double authentification (TOTP) disponible, secrets chiffrés, limitation des tentatives. En cas de violation de données susceptible de vous porter préjudice, vous et la CNIL en seriez informés conformément à la loi.</p>
+
+    {% include 'legal/_links.html.twig' %}
+{% endblock %}
