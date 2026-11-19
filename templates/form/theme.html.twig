@@ -9,6 +9,34 @@
     </div>
 {%- endblock form_row -%}
 
+{#
+    Single-choice fields (<select>) are shown as the app's styled dropdown
+    (assets/controllers/dropdown_controller.js, select mode) rather than the
+    browser's native list; the <select> stays in the DOM, hidden, as the real
+    source of truth for validation and submission. Radio/checkbox lists and
+    multiple selects keep the standard row.
+#}
+{%- block choice_row -%}
+    {%- import 'components/icons.html.twig' as icons -%}
+    {%- if expanded or multiple -%}
+        {{- block('form_row') -}}
+    {%- else -%}
+        <div class="form-row {{ row_attr.class|default('') }}">
+            {{- form_label(form) -}}
+            <div class="dropdown dropdown--field" data-controller="dropdown" data-action="click@window->dropdown#closeOnClickOutside keydown@window->dropdown#closeOnEscape">
+                <button type="button" class="dropdown__trigger" data-dropdown-target="trigger" data-action="dropdown#toggle" aria-haspopup="listbox" aria-expanded="false">
+                    <span data-dropdown-target="label"></span>
+                    {{ icons.render('chevron-right') }}
+                </button>
+                <div class="dropdown__menu" data-dropdown-target="menu"></div>
+                {{- form_widget(form, {attr: attr|merge({'data-dropdown-target': 'select', hidden: 'hidden'})}) -}}
+            </div>
+            {{- form_errors(form) -}}
+            {{- form_help(form) -}}
+        </div>
+    {%- endif -%}
+{%- endblock choice_row -%}
+
 {%- block checkbox_row -%}
     <div class="form-row form-row--checkbox {{ row_attr.class|default('') }}">
         {{- form_widget(form) -}}

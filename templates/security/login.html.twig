@@ -1,45 +1,55 @@
 {% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
 
 {% block title %}Connexion - Cyllos{% endblock %}
 
 {% block guest_body %}
-    <div class="login-page">
-        <div class="login-card">
-            <div class="login-card__brand">
-                <div class="login-card__mark">{% include 'components/_cylaos_logo.html.twig' %}</div>
+    <div class="auth">
+        {% include 'components/_auth_aside.html.twig' %}
+
+        <main class="auth__main">
+            <div class="auth__panel">
+                <div class="auth__mobile-brand">
+                    <span class="auth__mark">{% include 'components/_cylaos_logo.html.twig' %}</span> Cyllos
+                </div>
+
                 <div>
-                    <h1>Cyllos</h1>
-                    <p class="login-card__subtitle">Connectez-vous à votre espace</p>
+                    <h1 class="auth__title">Connexion</h1>
+                    <p class="auth__subtitle">Connectez-vous à votre espace Cyllos.</p>
                 </div>
+
+                <div>
+                    {% if error %}
+                        <div class="flash flash--error">{{ icons.render('x') }} Identifiants invalides.</div>
+                    {% endif %}
+
+                    {% for label, messages in app.flashes(['success', 'error']) %}
+                        {% for message in messages %}
+                            <div class="flash flash--{{ label }}">{{ icons.render(label == 'success' ? 'check' : 'x') }} {{ message }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+
+                <form method="post" class="auth__form">
+                    <div class="form-row">
+                        <label for="username">Adresse e-mail</label>
+                        <input type="email" id="username" name="_username" value="{{ last_username }}" autocomplete="email" placeholder="vous@exemple.fr" required autofocus>
+                    </div>
+                    <div class="form-row">
+                        <label for="password">Mot de passe</label>
+                        <input type="password" id="password" name="_password" autocomplete="current-password" placeholder="••••••••" required>
+                    </div>
+                    <div class="auth__row">
+                        <span></span>
+                        <a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a>
+                    </div>
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                    <button class="btn btn--block" type="submit">Se connecter {{ icons.render('arrow-right') }}</button>
+                </form>
+
+                <p class="auth__secure">{{ icons.render('key') }} Connexion chiffrée et sécurisée</p>
+                {% include 'legal/_links.html.twig' %}
             </div>
-
-            {% if error %}
-                <div class="flash flash--error">Identifiants invalides.</div>
-            {% endif %}
-
-            {% for label, messages in app.flashes(['success', 'error']) %}
-                {% for message in messages %}
-                    <div class="flash flash--{{ label }}">{{ message }}</div>
-                {% endfor %}
-            {% endfor %}
-
-            <form method="post">
-                <div class="form-row">
-                    <label for="username">Adresse e-mail</label>
-                    <input type="email" id="username" name="_username" value="{{ last_username }}" autocomplete="email" required autofocus>
-                </div>
-                <div class="form-row">
-                    <label for="password">Mot de passe</label>
-                    <input type="password" id="password" name="_password" autocomplete="current-password" required>
-                </div>
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
-                <button class="btn btn--block" type="submit">Se connecter</button>
-            </form>
-
-            <p class="text-sm text-muted" style="margin-top:1rem; text-align:center;">
-                <a href="{{ path('app_forgot_password') }}">Mot de passe oublié ?</a>
-            </p>
-            {% include 'legal/_links.html.twig' %}
-        </div>
+        </main>
     </div>
 {% endblock %}

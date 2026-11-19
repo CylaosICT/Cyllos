@@ -3,11 +3,12 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#0a1224">
         <title>{% block title %}Cyllos{% endblock %}</title>
-        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 rx=%2222%22 fill=%22%23186293%22/><text x=%2250%22 y=%2261%22 text-anchor=%22middle%22 font-family=%22Arial%2C sans-serif%22 font-size=%2222%22 font-weight=%22700%22 fill=%22%23fff%22>cylaos</text></svg>">
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%235aa8ff%22/><stop offset=%221%22 stop-color=%22%231558d6%22/></linearGradient></defs><rect width=%22100%22 height=%22100%22 rx=%2224%22 fill=%22url(%23g)%22/><path d=%22M69 32.5A26 26 0 1 0 69 67.5%22 fill=%22none%22 stroke=%22white%22 stroke-width=%2212.5%22 stroke-linecap=%22round%22/><circle cx=%2253%22 cy=%2250%22 r=%227.5%22 fill=%22white%22/></svg>">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;800&display=swap" rel="stylesheet">
         {% block stylesheets %}
         {% endblock %}
 
@@ -33,7 +34,8 @@
                 <div class="sidebar-backdrop" data-sidebar-target="backdrop" data-action="click->sidebar#close"></div>
                 <aside class="sidebar" data-sidebar-target="sidebar">
                     <a class="sidebar__brand" href="{{ path('app_home') }}">
-                        <span class="sidebar__brand-mark">{% include 'components/_cylaos_logo.html.twig' %}</span> Cyllos
+                        <span class="sidebar__brand-mark">{% include 'components/_cylaos_logo.html.twig' %}</span>
+                        <span class="sidebar__brand-text">Cyllos<span class="sidebar__brand-sub">Back-office</span></span>
                     </a>
                     <nav class="sidebar__nav">
                         {% if is_granted('ROLE_ADMIN') %}
