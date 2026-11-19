@@ -181,8 +181,11 @@ table, .kpi__value, .kpi__sub, .badge, .pagination__status {
     outline-offset: 2px;
 }
 
-/* Thin, quiet scrollbars */
-* {
+/* Thin, quiet scrollbars (only on the real scroll containers: setting this on
+   every element makes scrolling noticeably heavier). */
+.content,
+.sidebar__nav,
+.dropdown__menu {
     scrollbar-width: thin;
     scrollbar-color: var(--color-border-strong) transparent;
 }
@@ -1042,10 +1045,25 @@ table, .kpi__value, .kpi__sub, .badge, .pagination__status {
 .content {
     max-width: 1080px;
     padding: 2rem 2rem 3rem;
+    overscroll-behavior: contain;
+}
+
+/* Ambient glow: a static layer behind the page, so the scrolling content never
+   has to repaint a large gradient on every frame. */
+.main::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
     background:
-        radial-gradient(60rem 22rem at 100% -6rem, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 70%),
-        radial-gradient(40rem 18rem at 0% -4rem, color-mix(in srgb, var(--color-primary-bright) 5%, transparent), transparent 70%);
-    background-repeat: no-repeat;
+        radial-gradient(60rem 22rem at 100% 0, color-mix(in srgb, var(--color-primary) 7%, transparent), transparent 70%),
+        radial-gradient(40rem 18rem at 0 0, color-mix(in srgb, var(--color-primary-bright) 5%, transparent), transparent 70%);
+}
+
+.main > .content {
+    position: relative;
+    z-index: 1;
 }
 
 .content--wide {
@@ -1696,9 +1714,6 @@ tbody td {
     color: var(--color-text);
 }
 
-tbody tr {
-    transition: background-color 0.12s ease;
-}
 
 tbody tr:last-child td {
     border-bottom: none;
