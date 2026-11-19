@@ -1,32 +1,42 @@
 {% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
 
 {% block title %}Vérification 2FA - Cyllos{% endblock %}
 
 {% block guest_body %}
-    <div class="login-page">
-        <div class="login-card">
-            <div class="login-card__brand">
-                <div class="login-card__mark">{% include 'components/_cylaos_logo.html.twig' %}</div>
+    <div class="auth">
+        {% include 'components/_auth_aside.html.twig' %}
+
+        <main class="auth__main">
+            <div class="auth__panel">
+                <div class="auth__mobile-brand">
+                    <span class="auth__mark">{% include 'components/_cylaos_logo.html.twig' %}</span> Cyllos
+                </div>
+
                 <div>
-                    <h1>Double authentification</h1>
-                    <p class="login-card__subtitle">Entre le code à 6 chiffres de ton application d'authentification</p>
+                    <h1 class="auth__title">Double authentification</h1>
+                    <p class="auth__subtitle">Entre le code à 6 chiffres de ton application d'authentification</p>
                 </div>
+
+                <div>
+                    {% for label, messages in app.flashes(['error']) %}
+                        {% for message in messages %}
+                            <div class="flash flash--error">{{ icons.render('x') }} {{ message }}</div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+
+                <form method="post" class="auth__form">
+                    <div class="form-row auth__code">
+                        <label for="code">Code</label>
+                        <input type="text" id="code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" placeholder="000000" required autofocus>
+                    </div>
+                    <input type="hidden" name="_token" value="{{ csrf_token('totp_verify') }}">
+                    <button class="btn btn--block" type="submit">Valider {{ icons.render('arrow-right') }}</button>
+                </form>
+
+                <p class="auth__secure">{{ icons.render('key') }} Vérification en deux étapes</p>
             </div>
-
-            {% for label, messages in app.flashes(['error']) %}
-                {% for message in messages %}
-                    <div class="flash flash--error">{{ message }}</div>
-                {% endfor %}
-            {% endfor %}
-
-            <form method="post">
-                <div class="form-row">
-                    <label for="code">Code</label>
-                    <input type="text" id="code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus>
-                </div>
-                <input type="hidden" name="_token" value="{{ csrf_token('totp_verify') }}">
-                <button class="btn btn--block" type="submit">Valider</button>
-            </form>
-        </div>
+        </main>
     </div>
 {% endblock %}

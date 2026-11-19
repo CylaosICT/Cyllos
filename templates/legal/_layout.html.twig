@@ -12,8 +12,11 @@
 {% endblock %}
 
 {% block guest_body %}
-    <div class="login-page">
-        <div class="login-card legal-doc">
+    <div class="doc-page">
+        <div class="doc-card legal-doc">
+            <div class="doc-card__brand">
+                <span class="auth__mark">{% include 'components/_cylaos_logo.html.twig' %}</span> Cyllos
+            </div>
             <p class="text-sm"><a href="{{ path('app_login') }}">&larr; Retour à la connexion</a></p>
             <h1>{{ block('legal_title') }}</h1>
             {{ block('legal_content') }}

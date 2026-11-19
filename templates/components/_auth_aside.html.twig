@@ -1,0 +1,29 @@
+{# Brand panel shown on the left of every sign-in screen (hidden on small screens). #}
+{% import 'components/icons.html.twig' as icons %}
+<aside class="auth__aside" aria-hidden="true">
+    <span class="auth__blob auth__blob--a"></span>
+    <span class="auth__blob auth__blob--b"></span>
+
+    <a class="auth__brand" href="{{ path('app_login') }}" tabindex="-1">
+        <span class="auth__mark">{% include 'components/_cylaos_logo.html.twig' %}</span>
+        Cyllos
+    </a>
+
+    <div class="auth__hero">
+        <h2>Tous vos encaissements, <span>un seul tableau de bord.</span></h2>
+        <p>Suivez, rapprochez et créditez les paiements de vos clients en toute sécurité.</p>
+        <ul class="auth__features">
+            <li><span>{{ icons.render('payments') }}</span> Paiements centralisés en temps réel</li>
+            <li><span>{{ icons.render('sync') }}</span> Synchronisation automatique des prestataires</li>
+            <li><span>{{ icons.render('key') }}</span> Accès protégés par double authentification</li>
+        </ul>
+    </div>
+
+    <div class="auth__ticket">
+        <span class="auth__ticket-icon">{{ icons.render('check') }}</span>
+        <div>
+            <b>Paiement crédité</b>
+            <small>Rapprochement automatique</small>
+        </div>
+    </div>
+</aside>
