@@ -66,6 +66,34 @@ class ActivityLogRepository extends ServiceEntityRepository
             ->getOneOrNullResult();
     }
 
+    /**
+     * Latest recorded API call per client and service, for the per-client
+     * connection-health card.
+     *
+     * @return array<int, array<string, ActivityLog>> clientId => service => call
+     */
+    public function lastApiCallsByClient(): array
+    {
+        $latestIds = $this->createQueryBuilder('m')
+            ->select('MAX(m.id)')
+            ->andWhere('m.clientId IS NOT NULL')
+            ->andWhere('m.apiService IS NOT NULL')
+            ->groupBy('m.clientId', 'm.apiService')
+            ->getQuery()
+            ->getSingleColumnResult();
+
+        if ($latestIds === []) {
+            return [];
+        }
+
+        $map = [];
+        foreach ($this->findBy(['id' => $latestIds]) as $call) {
+            $map[$call->getClientId()][$call->getApiService()] = $call;
+        }
+
+        return $map;
+    }
+
     public function deleteAll(): int
     {
         return (int) $this->createQueryBuilder('l')

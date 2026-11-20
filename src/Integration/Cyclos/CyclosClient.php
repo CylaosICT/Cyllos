@@ -212,11 +212,11 @@ class CyclosClient
 
         try {
             $response = $this->httpClient->request($method, $url, $options);
-            $this->apiCallLogger->record('cyclos', $method, $url, $requestBody, $response->getStatusCode(), $response->getContent(false));
+            $this->apiCallLogger->record('cyclos', $method, $url, $requestBody, $response->getStatusCode(), $response->getContent(false), clientId: $config->getClient()?->getId());
 
             return $response;
         } catch (HttpClientExceptionInterface $exception) {
-            $this->apiCallLogger->record('cyclos', $method, $url, $requestBody, 0, $exception->getMessage());
+            $this->apiCallLogger->record('cyclos', $method, $url, $requestBody, 0, $exception->getMessage(), clientId: $config->getClient()?->getId());
 
             throw $exception;
         }

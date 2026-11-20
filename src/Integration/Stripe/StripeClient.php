@@ -101,7 +101,7 @@ class StripeClient
         }
 
         // The API key is never part of $params, so the request body is safe to trace.
-        $this->apiCallLogger->record('stripe', 'POST', $url, http_build_query($params), $status, $content, 'POST /v1/checkout/sessions');
+        $this->apiCallLogger->record('stripe', 'POST', $url, http_build_query($params), $status, $content, 'POST /v1/checkout/sessions', clientId: $config->getClient()?->getId());
 
         $data = json_decode($content, true);
         if ($status >= 300 || !\is_array($data)) {

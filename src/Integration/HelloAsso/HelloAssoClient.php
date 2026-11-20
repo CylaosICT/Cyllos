@@ -131,7 +131,7 @@ class HelloAssoClient
                 'timeout' => self::REQUEST_TIMEOUT,
             ]);
 
-            $this->apiCallLogger->record('helloasso', 'GET', $url, json_encode($query, JSON_PRETTY_PRINT), $response->getStatusCode(), $response->getContent(false), 'Récupération des paiements HelloAsso');
+            $this->apiCallLogger->record('helloasso', 'GET', $url, json_encode($query, JSON_PRETTY_PRINT), $response->getStatusCode(), $response->getContent(false), 'Récupération des paiements HelloAsso', clientId: $config->getClient()?->getId());
 
             if ($response->getStatusCode() === 401) {
                 $this->forgetAccessToken($config);
@@ -169,7 +169,7 @@ class HelloAssoClient
             return $payments;
         } catch (HttpClientExceptionInterface $exception) {
             $this->logger->error('Error fetching HelloAsso payment history: {message}', ['message' => $exception->getMessage()]);
-            $this->apiCallLogger->record('helloasso', 'GET', $this->buildUrl($config, 'v5/organizations/.../payments'), null, 0, $exception->getMessage());
+            $this->apiCallLogger->record('helloasso', 'GET', $this->buildUrl($config, 'v5/organizations/.../payments'), null, 0, $exception->getMessage(), clientId: $config->getClient()?->getId());
 
             return [];
         }
@@ -195,7 +195,7 @@ class HelloAssoClient
                 'headers' => ['Authorization' => 'Bearer ' . $token],
                 'timeout' => self::REQUEST_TIMEOUT,
             ]);
-            $this->apiCallLogger->record('helloasso', 'GET', $paymentUrl, null, $paymentResponse->getStatusCode(), $paymentResponse->getContent(false), 'Recherche email alternatif — paiement');
+            $this->apiCallLogger->record('helloasso', 'GET', $paymentUrl, null, $paymentResponse->getStatusCode(), $paymentResponse->getContent(false), 'Recherche email alternatif — paiement', clientId: $config->getClient()?->getId());
 
             if ($paymentResponse->getStatusCode() === 401) {
                 $this->forgetAccessToken($config);
@@ -217,7 +217,7 @@ class HelloAssoClient
                 'headers' => ['Authorization' => 'Bearer ' . $token],
                 'timeout' => self::REQUEST_TIMEOUT,
             ]);
-            $this->apiCallLogger->record('helloasso', 'GET', $orderUrl, null, $orderResponse->getStatusCode(), $orderResponse->getContent(false), 'Recherche email alternatif — commande');
+            $this->apiCallLogger->record('helloasso', 'GET', $orderUrl, null, $orderResponse->getStatusCode(), $orderResponse->getContent(false), 'Recherche email alternatif — commande', clientId: $config->getClient()?->getId());
 
             if ($orderResponse->getStatusCode() >= 300) {
                 $this->logger->error('Error fetching HelloAsso order {id}', ['id' => $orderId]);
@@ -320,7 +320,7 @@ class HelloAssoClient
 
             if ($status === 429) {
                 $wait = $this->parseRetryAfter($response->getHeaders(false)['retry-after'][0] ?? null);
-                $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, $status, 'Trop de requêtes (429)', 'Authentification OAuth2 — limitée');
+                $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, $status, 'Trop de requêtes (429)', 'Authentification OAuth2 — limitée', clientId: $config->getClient()?->getId());
 
                 $blockItem = $this->cache->getItem(self::RATE_LIMIT_CACHE_KEY);
                 $blockItem->set(time() + $wait);
@@ -341,18 +341,18 @@ class HelloAssoClient
                 // diagnosable from the journal/exception instead of a bare "no
                 // access_token" message.
                 $reason = $this->describeTokenError($data);
-                $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, $status, $reason, 'Authentification OAuth2 — échec');
+                $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, $status, $reason, 'Authentification OAuth2 — échec', clientId: $config->getClient()?->getId());
 
                 throw new HelloAssoException(\sprintf('HelloAsso token response did not contain an access_token (HTTP %d): %s', $status, $reason));
             }
 
-            $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, $status, '(jeton d\'accès — non journalisé)', 'Authentification OAuth2');
+            $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, $status, '(jeton d\'accès — non journalisé)', 'Authentification OAuth2', clientId: $config->getClient()?->getId());
 
             $expiresIn = isset($data['expires_in']) && is_numeric($data['expires_in']) ? (int) $data['expires_in'] : self::TOKEN_DEFAULT_TTL + self::TOKEN_TTL_MARGIN;
 
             return [$accessToken, max(60, $expiresIn - self::TOKEN_TTL_MARGIN)];
         } catch (HttpClientExceptionInterface $exception) {
-            $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, 0, $exception->getMessage(), 'Authentification OAuth2');
+            $this->apiCallLogger->record('helloasso', 'POST', $url, $redactedRequest, 0, $exception->getMessage(), 'Authentification OAuth2', clientId: $config->getClient()?->getId());
 
             throw new HelloAssoException('Failed to fetch HelloAsso access token: ' . $exception->getMessage(), previous: $exception);
         }
