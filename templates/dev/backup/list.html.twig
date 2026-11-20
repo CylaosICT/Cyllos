@@ -1,0 +1,97 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Sauvegardes - Cyllos{% endblock %}
+{% block content_width %}content--full{% endblock %}
+
+{% block page_title %}Sauvegardes de la base{% endblock %}
+{% block page_actions %}
+    <a class="btn btn--secondary" href="{{ path('dev_update_list') }}">Historique des mises à jour</a>
+    <form method="post" action="{{ path('dev_backup_create') }}">
+        <input type="hidden" name="_token" value="{{ csrf_token('backup_create') }}">
+        <button class="btn" type="submit">{{ icons.render('download') }} Sauvegarder maintenant</button>
+    </form>
+{% endblock %}
+
+{% block body %}
+    <div class="card" style="margin-bottom: 1.5rem;">
+        <div class="card__header">
+            <div>
+                <h2>Sauvegardes automatiques</h2>
+                <p>Une copie complète de la base, prise à intervalle régulier. Les plus anciennes sont supprimées au-delà du nombre conservé.</p>
+            </div>
+            <span class="badge {{ autoEnabled ? 'badge--success' : 'badge--todo' }}">{{ autoEnabled ? 'Activées' : 'Désactivées' }}</span>
+        </div>
+        <div class="card__body">
+            <form method="post" action="{{ path('dev_backup_settings') }}" class="backup-settings">
+                <input type="hidden" name="_token" value="{{ csrf_token('backup_settings') }}">
+                <label class="backup-settings__check">
+                    <input type="checkbox" name="enabled" value="1" {{ autoEnabled ? 'checked' : '' }}> Activer les sauvegardes automatiques
+                </label>
+                <div class="form-row">
+                    <label for="backup-interval">Fréquence</label>
+                    <div class="dropdown dropdown--field" data-controller="dropdown" data-action="click@window->dropdown#closeOnClickOutside keydown@window->dropdown#closeOnEscape">
+                        <button type="button" class="dropdown__trigger" data-dropdown-target="trigger" data-action="dropdown#toggle" aria-haspopup="listbox" aria-expanded="false">
+                            <span data-dropdown-target="label"></span>
+                            {{ icons.render('chevron-right') }}
+                        </button>
+                        <div class="dropdown__menu" data-dropdown-target="menu"></div>
+                        <select id="backup-interval" name="interval" data-dropdown-target="select" hidden>
+                            {% for hours, label in intervals %}
+                                <option value="{{ hours }}" {{ hours == autoInterval ? 'selected' : '' }}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label for="backup-retention">Sauvegardes conservées</label>
+                    <input id="backup-retention" type="number" name="retention" min="1" max="60" value="{{ autoRetention }}">
+                </div>
+                <button class="btn btn--secondary" type="submit">Enregistrer</button>
+            </form>
+            <p class="text-sm text-muted" style="margin-top: 1rem;">
+                Exécutées par le planificateur (<code>cyllos-scheduler</code>) ; il doit tourner sur le serveur.
+                Une sauvegarde est aussi prise automatiquement avant chaque mise à jour.
+            </p>
+        </div>
+    </div>
+
+    {% if backups is empty %}
+        <div class="empty-state">
+            <div class="empty-state__icon">{{ icons.render('download') }}</div>
+            <h3>Aucune sauvegarde</h3>
+            <p>Lancez une sauvegarde manuelle, ou activez les sauvegardes automatiques.</p>
+        </div>
+    {% else %}
+        <p class="text-sm text-muted" style="margin-bottom: .75rem;">{{ backups|length }} sauvegarde{{ backups|length > 1 ? 's' : '' }} · {{ (totalSize / 1048576)|round(1) }} Mo au total</p>
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr><th>Date</th><th>Type</th><th>Fichier</th><th>Taille</th><th>Créée par</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                        <tr>
+                            <td>{{ backup.createdAt|date('d/m/Y H:i:s') }}</td>
+                            <td><span class="badge {{ backup.type == 'manual' ? 'badge--waiting' : (backup.type == 'auto' ? 'badge--todo' : 'badge--warning') }}">{{ backup.typeLabel }}</span></td>
+                            <td class="cell-muted"><code>{{ backup.filename }}</code>{% if not fileExists[backup.id] %} <span class="badge badge--fail">fichier manquant</span>{% endif %}</td>
+                            <td class="cell-muted">{{ (backup.sizeBytes / 1024)|round }} Ko</td>
+                            <td class="cell-muted">{{ backup.createdBy ?? '—' }}</td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    {% if fileExists[backup.id] %}
+                                        <a class="btn btn--secondary btn--sm" href="{{ path('dev_backup_download', {id: backup.id}) }}">{{ icons.render('download') }} Télécharger</a>
+                                    {% endif %}
+                                    <form method="post" action="{{ path('dev_backup_delete', {id: backup.id}) }}" data-confirm-title="Supprimer la sauvegarde" data-confirm-message="Le fichier de cette sauvegarde sera supprimé définitivement. Continuer ?" data-confirm-confirm-label="Supprimer">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('backup_delete_' ~ backup.id) }}">
+                                        <button class="btn btn--secondary btn--icon" type="submit" title="Supprimer">{{ icons.render('trash') }}</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

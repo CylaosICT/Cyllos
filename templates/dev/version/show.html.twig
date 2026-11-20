@@ -4,16 +4,11 @@
 {% block title %}Mises à jour - Cyllos{% endblock %}
 {% block content_width %}content--full{% endblock %}
 
-{% block stylesheets %}
-    {{ parent() }}
-    {% if paySite is defined and paySite is not null and paySite.running %}<meta http-equiv="refresh" content="4">{% endif %}
-{% endblock %}
-
 {% block page_title %}Mises à jour{% endblock %}
 {% block page_actions %}
     <a class="btn btn--secondary" href="{{ path('dev_version_show', {refresh: 1}) }}">{{ icons.render('sync') }} Vérifier maintenant</a>
     {% if is_granted('ROLE_DEVELOPER') and status.state in ['behind', 'diverged'] %}
-        <form method="post" action="{{ path('dev_version_deploy') }}" data-confirm-title="Déployer la mise à jour" data-confirm-message="Ceci va exécuter git pull, composer install, les migrations et vider le cache directement sur ce serveur. Continuer ?" data-confirm-confirm-label="Déployer">
+        <form method="post" action="{{ path('dev_version_deploy') }}" data-confirm-title="Déployer la mise à jour" data-confirm-message="Une sauvegarde de la base et du code est faite d'abord, puis git pull, composer install, les migrations et le vidage du cache sont exécutés ici. En cas d'échec, la version précédente est restaurée. Continuer ?" data-confirm-confirm-label="Déployer">
             <input type="hidden" name="_token" value="{{ csrf_token('deploy_app') }}">
             <button class="btn btn--danger" type="submit">{{ icons.render('arrow-right') }} Déployer la mise à jour</button>
         </form>
@@ -21,8 +16,14 @@
 {% endblock %}
 
 {% block body %}
-    <div class="{{ deployResult is defined ? 'version-layout' : '' }}">
-        <div class="version-layout__status">
+    <div>
+        <div>
+            {% if runningRun is defined and runningRun %}
+                <div class="flash flash--info" style="margin-bottom:1.25rem;">
+                    {{ icons.render('sync') }} Une mise à jour de {{ runningRun.targetLabel }} est en cours.
+                    <a href="{{ path('dev_update_show', {id: runningRun.id}) }}">Suivre dans le terminal</a>
+                </div>
+            {% endif %}
             <div class="card">
                 <div class="card__header">
                     <div>
@@ -140,51 +141,35 @@
                 </div>
             {% endif %}
 
+            {% if recentRuns is defined and recentRuns is not empty %}
+                <div class="card" style="margin-top:1.5rem;">
+                    <div class="card__header">
+                        <div><h2>Dernières mises à jour</h2></div>
+                        <a class="btn btn--ghost btn--sm" href="{{ path('dev_update_list') }}">Tout l'historique</a>
+                    </div>
+                    <div class="card__body">
+                        <dl class="kv-list">
+                            {% for run in recentRuns %}
+                                <div class="kv-row">
+                                    <dt><a href="{{ path('dev_update_show', {id: run.id}) }}">{{ run.startedAt|date('d/m/Y H:i') }}</a> · {{ run.targetLabel }} <span class="text-muted">· {{ run.triggeredBy ?? '—' }}</span></dt>
+                                    <dd><span class="badge {{ run.statusBadge }}">{{ run.statusLabel }}</span></dd>
+                                </div>
+                            {% endfor %}
+                        </dl>
+                    </div>
+                </div>
+            {% endif %}
+
             <p class="text-sm text-muted" style="margin-top:1rem;">
                 Comparaison en lecture seule : rien n'est modifié ni téléchargé automatiquement.
                 Le résultat est mis en cache 5 minutes ; utilisez "Vérifier maintenant" pour forcer un contrôle immédiat.
                 {% if is_granted('ROLE_DEVELOPER') %}
                     Le bouton "Déployer la mise à jour" (réservé aux développeurs et au CEO) exécute réellement
                     <code>git pull</code>, <code>composer install</code>, les migrations et un vidage de cache sur ce
-                    serveur — à utiliser en connaissance de cause (voir la documentation, section Déploiement).
+                    serveur, après une sauvegarde de sécurité (base et code) et avec retour automatique en cas d'échec — à utiliser en connaissance de cause (voir la documentation, section Déploiement).
                 {% endif %}
             </p>
         </div>
 
-        {% if deployResult is defined %}
-            <div class="version-layout__result card">
-                <div class="card__header">
-                    <div>
-                        <h2>Résultat du déploiement</h2>
-                    </div>
-                    {% if deployResult.locked %}
-                        <span class="badge badge--warning">{{ icons.render('sync') }} Déjà en cours</span>
-                    {% elseif deployResult.success %}
-                        <span class="badge badge--success">{{ icons.render('check') }} Réussi</span>
-                    {% else %}
-                        <span class="badge badge--fail">{{ icons.render('x') }} Échec</span>
-                    {% endif %}
-                </div>
-                <div class="card__body">
-                    {% if deployResult.locked %}
-                        <p class="text-muted">Un déploiement est déjà en cours d'exécution sur ce serveur. Réessayez une fois qu'il est terminé.</p>
-                    {% else %}
-                        {% for step in deployResult.steps %}
-                            <h4 style="margin-top: {{ loop.first ? '0' : '1.25rem' }};">
-                                {% if step.optional|default(false) and step.exitCode != 0 %}
-                                    {{ icons.render('sync') }}
-                                {% else %}
-                                    {{ step.exitCode == 0 ? icons.render('check') : (step.exitCode is null ? '—' : icons.render('x')) }}
-                                {% endif %}
-                                {{ step.label }}
-                                {% if step.optional|default(false) %}<span class="badge badge--todo text-sm">facultatif</span>{% endif %}
-                                <code class="text-sm">{{ step.command }}</code>
-                            </h4>
-                            <pre class="deploy-result__pre">{{ step.output }}</pre>
-                        {% endfor %}
-                    {% endif %}
-                </div>
-            </div>
-        {% endif %}
     </div>
 {% endblock %}

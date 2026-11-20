@@ -43,7 +43,7 @@
                                         </a>
                                     </td>
                                     <td><code>{{ client.slug }}</code></td>
-                                    <td><span class="badge {{ client.usesStripe ? 'badge--waiting' : 'badge--todo' }}">{{ client.paymentProvider.label }}</span></td>
+                                    <td><span class="badge {{ client.usesStripe ? 'badge--waiting' : 'badge--warning' }}">{{ client.paymentProvider.label }}</span></td>
                                     <td>
                                         <span class="status-pill">
                                             <span class="dot {{ client.active ? 'dot--active' : 'dot--inactive' }}"></span>

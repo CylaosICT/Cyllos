@@ -80,6 +80,12 @@
                                     <span class="nav-link__badge" title="En retard de {{ versionStatus.behindBy }} commit{{ versionStatus.behindBy > 1 ? 's' : '' }} sur {{ versionStatus.upstreamRepo }}">{{ versionStatus.behindBy }}</span>
                                 {% endif %}
                             </a>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_update' ? 'is-active' : '' }}" href="{{ path('dev_update_list') }}">
+                                {{ icons.render('rule') }} Historique des mises à jour
+                            </a>
+                            <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_backup' ? 'is-active' : '' }}" href="{{ path('dev_backup_list') }}">
+                                {{ icons.render('download') }} Sauvegardes
+                            </a>
                             <a class="nav-link {{ app.request.attributes.get('_route') starts with 'dev_documentation' ? 'is-active' : '' }}" href="{{ path('dev_documentation_show') }}">
                                 {{ icons.render('book') }} Documentation
                             </a>
