@@ -1719,9 +1719,16 @@ tbody tr:last-child td {
     border-bottom: none;
 }
 
-tbody tr:hover {
+/* Hover paints the cells (not the row) so the last row can follow the
+   container's rounded corners instead of showing a square highlight. */
+tbody tr:hover td {
     background: color-mix(in srgb, var(--color-primary) 4%, var(--color-surface));
 }
+
+.card tbody tr:last-child td:first-child,
+.table-wrapper tbody tr:last-child td:first-child { border-bottom-left-radius: calc(var(--radius-lg) - 1px); }
+.card tbody tr:last-child td:last-child,
+.table-wrapper tbody tr:last-child td:last-child { border-bottom-right-radius: calc(var(--radius-lg) - 1px); }
 
 .summary-card__body table thead th:first-child { border-radius: 8px 0 0 8px; }
 .summary-card__body table thead th:last-child { border-radius: 0 8px 8px 0; }
@@ -3298,4 +3305,84 @@ input[type="radio"] {
 .doc-card .legal-doc,
 .doc-card.legal-doc {
     padding: 2.5rem 2.75rem 2rem;
+}
+
+
+/* ==========================================================================
+   Updates: live terminal, run page, backups
+   ========================================================================== */
+
+.update-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+@media (max-width: 1100px) {
+    .update-grid { grid-template-columns: 1fr; }
+}
+
+.terminal {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    line-height: 1.65;
+    background: #070d1c;
+    color: #b8c7e6;
+    border-top: 1px solid var(--color-border);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    padding: 1rem 1.25rem 1.25rem;
+    height: min(62vh, 640px);
+    min-height: 280px;
+    overflow: auto;
+    overscroll-behavior: contain;
+}
+
+.terminal__line {
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 1.65em;
+}
+
+.terminal__line--cmd { color: #7cc4ff; font-weight: 600; }
+.terminal__line--step { color: #ffffff; font-weight: 700; margin-top: 0.35rem; }
+.terminal__line--ok { color: #4ade80; }
+.terminal__line--fail { color: #f87171; font-weight: 600; }
+.terminal__line--warn { color: #fbbf24; }
+.terminal__line--banner { color: #a5b4fc; font-weight: 700; }
+
+.terminal__cursor {
+    display: inline-block;
+    width: 0.55em;
+    height: 1.1em;
+    vertical-align: text-bottom;
+    background: #7cc4ff;
+    animation: terminal-blink 1s steps(2, start) infinite;
+}
+
+.terminal__cursor[hidden] { display: none; }
+
+@keyframes terminal-blink {
+    to { visibility: hidden; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .terminal__cursor { animation: none; }
+}
+
+.backup-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem 1.5rem;
+}
+
+.backup-settings .form-row { margin: 0; min-width: 190px; }
+
+.backup-settings__check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+    padding-bottom: 0.55rem;
 }

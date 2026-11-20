@@ -1000,7 +1000,7 @@ php bin/console messenger:consume async               # crédit Cyclos webhook, 
                 <code>/dev/version</code> compare déjà le commit local au commit du dépôt GitHub
                 canonique (<code>VersionChecker</code>). Quand l'application n'est pas à jour, un
                 bouton "Déployer la mise à jour" apparaît — accessible à <code>ROLE_DEVELOPER</code>
-                et <code>ROLE_CEO</code> — qui déclenche <code>DeploymentRunner::run()</code> :
+                et <code>ROLE_CEO</code> — qui déclenche <code>DeploymentRunner::execute()</code> :
             </p>
             <ol>
                 <li><code>git pull --ff-only</code></li>
@@ -1193,7 +1193,7 @@ php bin/console messenger:consume async               # crédit Cyclos webhook, 
                 éléments d'interface qui semblaient ne jamais s'initialiser.
             </p>
             <p>
-                Cause : <code>DeploymentRunner::run()</code> (et la procédure manuelle documentée)
+                Cause : <code>DeploymentRunner::execute()</code> (et la procédure manuelle documentée)
                 n'exécutaient jamais <code>asset-map:compile</code> après un <code>git pull</code> —
                 seulement <code>cache:clear</code>. En développement (AssetMapper en mode dev), les
                 fichiers sont servis directement depuis <code>assets/</code>, donc ce n'est jamais un
@@ -1210,7 +1210,7 @@ php bin/console messenger:consume async               # crédit Cyclos webhook, 
             </p>
             <p>
                 Corrigé en ajoutant <code>asset-map:compile --no-interaction</code> comme 5<sup>e</sup>
-                étape de <code>DeploymentRunner::run()</code>, et dans la procédure manuelle
+                étape de <code>DeploymentRunner::execute()</code>, et dans la procédure manuelle
                 (<code>docs/DEPLOIEMENT_DEBIAN13.md</code>, section "Mises à jour ultérieures"). Pas
                 de test automatisé possible ici (comportement spécifique à
                 <code>APP_ENV=prod</code>, absent de la suite de tests) — seule la checklist de

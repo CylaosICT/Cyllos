@@ -81,6 +81,22 @@ services:
         arguments:
             $projectDir: '%kernel.project_dir%'
 
+    App\Deployment\UpdateLog:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Deployment\UpdateLauncher:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Backup\DatabaseBackupManager:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
+    App\Backup\CodeSnapshot:
+        arguments:
+            $projectDir: '%kernel.project_dir%'
+
     App\Deployment\PaySiteUpdater:
         arguments:
             $paySiteBaseUrl: '%env(PAY_SITE_BASE_URL)%'

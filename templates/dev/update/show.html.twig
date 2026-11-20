@@ -1,0 +1,92 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Mise à jour #{{ run.id }} - Cyllos{% endblock %}
+{% block content_width %}content--full{% endblock %}
+
+{% block page_title %}Mise à jour #{{ run.id }}{% endblock %}
+{% block page_actions %}
+    <a class="btn btn--secondary" href="{{ path('dev_update_list') }}">Historique</a>
+    <a class="btn btn--secondary" href="{{ path('dev_version_show') }}">{{ icons.render('sync') }} Mises à jour</a>
+{% endblock %}
+
+{% block body %}
+    <div class="update-grid">
+        <div class="card" data-controller="terminal" data-terminal-url-value="{{ path('dev_update_stream', {id: run.id}) }}" data-terminal-running-value="{{ run.running ? 'true' : 'false' }}">
+            <div class="card__header">
+                <div>
+                    <h2>Terminal</h2>
+                    <p>{{ run.targetLabel }} — {{ run.running ? 'les étapes s\'affichent au fur et à mesure.' : 'journal complet de l\'exécution.' }}</p>
+                </div>
+                <span class="badge {{ run.statusBadge }}" data-terminal-target="status">{{ run.statusLabel }}</span>
+            </div>
+            <div class="terminal" data-terminal-target="screen">
+                <span class="terminal__cursor" data-terminal-target="cursor" {{ run.running ? '' : 'hidden' }}></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card__header"><div><h2>Résumé</h2></div></div>
+            <div class="card__body">
+                <dl class="kv-list">
+                    <div class="kv-row"><dt>Cible</dt><dd>{{ run.targetLabel }}</dd></div>
+                    <div class="kv-row"><dt>Lancée par</dt><dd>{{ run.triggeredBy ?? '—' }}</dd></div>
+                    <div class="kv-row"><dt>Début</dt><dd>{{ run.startedAt|date('d/m/Y H:i:s') }}</dd></div>
+                    <div class="kv-row"><dt>Fin</dt><dd>{{ run.finishedAt ? run.finishedAt|date('d/m/Y H:i:s') ~ ' (' ~ run.durationSeconds ~ ' s)' : 'en cours…' }}</dd></div>
+                    <div class="kv-row">
+                        <dt>Version</dt>
+                        <dd>
+                            {% if run.fromCommit %}<code>{{ run.fromCommit|slice(0, 7) }}</code>{% else %}?{% endif %}
+                            &rarr;
+                            {% if run.toCommit %}<code>{{ run.toCommit|slice(0, 7) }}</code>{% else %}<span class="text-muted">—</span>{% endif %}
+                            {% if run.fromCommit and run.toCommit and run.fromCommit != run.toCommit %}
+                                · <a href="https://github.com/{{ repo }}/compare/{{ run.fromCommit }}...{{ run.toCommit }}" target="_blank" rel="noopener">GitHub {{ icons.render('external') }}</a>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+
+                {% if run.commits %}
+                    <h4 style="margin: 1.25rem 0 .5rem;">Commits déployés ({{ run.commits|length }})</h4>
+                    <dl class="kv-list">
+                        {% for commit in run.commits %}
+                            <div class="kv-row">
+                                <dt><a href="https://github.com/{{ repo }}/commit/{{ commit.sha }}" target="_blank" rel="noopener"><code>{{ commit.sha|slice(0, 7) }}</code></a> {{ commit.subject }}</dt>
+                                <dd class="text-muted">{{ commit.author }}</dd>
+                            </div>
+                        {% endfor %}
+                    </dl>
+                {% endif %}
+
+                <h4 style="margin: 1.25rem 0 .5rem;">Sauvegardes de sécurité</h4>
+                <dl class="kv-list">
+                    <div class="kv-row">
+                        <dt>Base de données</dt>
+                        <dd>
+                            {% if run.databaseBackup and dbBackupExists %}
+                                <a href="{{ path('dev_backup_download', {id: run.databaseBackup.id}) }}">{{ icons.render('download') }} Télécharger</a>
+                                <span class="text-muted">· {{ (run.databaseBackup.sizeBytes / 1024)|round }} Ko</span>
+                            {% else %}
+                                <span class="text-muted">{{ run.databaseBackup ? 'fichier supprimé' : 'aucune' }}</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div class="kv-row">
+                        <dt>Code</dt>
+                        <dd>
+                            {% if codeBackupExists %}
+                                <span class="text-muted">{{ (run.codeBackupSize / 1024)|round }} Ko</span>
+                                <form method="post" action="{{ path('dev_update_delete_code_backup', {id: run.id}) }}" style="display:inline;" data-confirm-title="Supprimer l'archive du code" data-confirm-message="Le retour à cette version par l'archive ne sera plus possible. Continuer ?" data-confirm-confirm-label="Supprimer">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('update_code_backup_' ~ run.id) }}">
+                                    <button class="btn btn--ghost btn--sm" type="submit">{{ icons.render('trash') }} Supprimer</button>
+                                </form>
+                            {% else %}
+                                <span class="text-muted">{{ run.codeBackupFile ? 'fichier supprimé' : 'aucune' }}</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+{% endblock %}

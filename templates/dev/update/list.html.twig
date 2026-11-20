@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+{% import 'components/icons.html.twig' as icons %}
+
+{% block title %}Historique des mises à jour - Cyllos{% endblock %}
+{% block content_width %}content--full{% endblock %}
+
+{% block page_title %}Historique des mises à jour{% endblock %}
+{% block page_actions %}
+    <a class="btn btn--secondary" href="{{ path('dev_backup_list') }}">{{ icons.render('download') }} Sauvegardes</a>
+    <a class="btn btn--secondary" href="{{ path('dev_version_show') }}">{{ icons.render('sync') }} Mises à jour</a>
+{% endblock %}
+
+{% block body %}
+    {% if runs is empty %}
+        <div class="empty-state">
+            <div class="empty-state__icon">{{ icons.render('sync') }}</div>
+            <h3>Aucune mise à jour enregistrée</h3>
+            <p>Les prochains déploiements apparaîtront ici avec leur statut, leurs commits et leurs sauvegardes.</p>
+        </div>
+    {% else %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Date</th>
+                        <th>Cible</th>
+                        <th>Lancée par</th>
+                        <th>Version</th>
+                        <th>Durée</th>
+                        <th>Statut</th>
+                        <th>Sauvegardes</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for run in runs %}
+                        <tr>
+                            <td class="cell-muted">{{ run.id }}</td>
+                            <td>{{ run.startedAt|date('d/m/Y H:i') }}</td>
+                            <td>{{ run.targetLabel }}</td>
+                            <td class="cell-muted">{{ run.triggeredBy ?? '—' }}</td>
+                            <td>
+                                {% if run.fromCommit %}<code>{{ run.fromCommit|slice(0, 7) }}</code>{% else %}?{% endif %}
+                                &rarr;
+                                {% if run.toCommit %}<code>{{ run.toCommit|slice(0, 7) }}</code>{% else %}—{% endif %}
+                                {% if run.commits %}<span class="cell-muted">· {{ run.commits|length }} commit{{ run.commits|length > 1 ? 's' : '' }}</span>{% endif %}
+                            </td>
+                            <td class="cell-muted">{{ run.durationSeconds is null ? '…' : run.durationSeconds ~ ' s' }}</td>
+                            <td><span class="badge {{ run.statusBadge }}">{{ run.statusLabel }}</span></td>
+                            <td class="cell-muted">
+                                {% if run.databaseBackup %}<a href="{{ path('dev_backup_download', {id: run.databaseBackup.id}) }}" title="Télécharger la sauvegarde de la base">BDD</a>{% endif %}
+                                {% if codeBackupExists[run.id] %}{{ run.databaseBackup ? '· ' : '' }}code{% endif %}
+                                {% if not run.databaseBackup and not codeBackupExists[run.id] %}—{% endif %}
+                            </td>
+                            <td class="actions-cell">
+                                <div class="actions">
+                                    <a class="btn btn--secondary btn--sm" href="{{ path('dev_update_show', {id: run.id}) }}">{{ run.running ? 'Suivre' : 'Détails' }}</a>
+                                    {% if codeBackupExists[run.id] %}
+                                        <form method="post" action="{{ path('dev_update_delete_code_backup', {id: run.id}) }}" data-confirm-title="Supprimer l'archive du code" data-confirm-message="L'archive du code de cette mise à jour sera supprimée. Continuer ?" data-confirm-confirm-label="Supprimer">
+                                            <input type="hidden" name="_token" value="{{ csrf_token('update_code_backup_' ~ run.id) }}">
+                                            <button class="btn btn--secondary btn--icon" type="submit" title="Supprimer l'archive du code">{{ icons.render('trash') }}</button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}
