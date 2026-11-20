@@ -75,10 +75,7 @@ class DashboardController extends AbstractController
                 'oldestPendingSeconds' => $this->queueStatus->oldestPendingSeconds(),
             ],
             'failedMessages' => $this->queueStatus->failedMessages(),
-            'apiHealth' => [
-                'helloasso' => $this->activityLogRepository->lastApiCall('helloasso'),
-                'cyclos' => $this->activityLogRepository->lastApiCall('cyclos'),
-            ],
+            'connectionHealth' => $this->buildConnectionHealth(),
             'legacyWebhookClients' => $this->clientRepository->findWithRecentLegacyWebhook(
                 new \DateTimeImmutable(\sprintf('-%d days', self::LEGACY_WEBHOOK_WINDOW_DAYS)),
             ),
@@ -89,6 +86,26 @@ class DashboardController extends AbstractController
             'quietClientHours' => self::QUIET_CLIENT_HOURS,
             'recentFailures' => $this->paymentRepository->findRecentByStatus(PaymentStatus::Fail, 5),
         ]);
+    }
+
+    /**
+     * One row per active client: its payment service (HelloAsso or Stripe) and
+     * Cyclos, each with the latest recorded API call (null = none yet).
+     *
+     * @return list<array{client: \App\Entity\Client, payment: ?\App\Entity\ActivityLog, cyclos: ?\App\Entity\ActivityLog}>
+     */
+    private function buildConnectionHealth(): array
+    {
+        $calls = $this->activityLogRepository->lastApiCallsByClient();
+
+        return array_map(
+            static fn (\App\Entity\Client $client): array => [
+                'client' => $client,
+                'payment' => $calls[$client->getId()][$client->getPaymentProvider()->value] ?? null,
+                'cyclos' => $calls[$client->getId()]['cyclos'] ?? null,
+            ],
+            $this->clientRepository->findAllActive(),
+        );
     }
 
     /**

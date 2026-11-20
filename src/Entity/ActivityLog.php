@@ -12,6 +12,7 @@ use Doctrine\ORM\Mapping as ORM;
  */
 #[ORM\Entity(repositoryClass: ActivityLogRepository::class)]
 #[ORM\Index(columns: ['created_at'])]
+#[ORM\Index(name: 'idx_activity_log_client_service', columns: ['client_id', 'api_service', 'created_at'])]
 class ActivityLog
 {
     #[ORM\Id]
@@ -66,6 +67,13 @@ class ActivityLog
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $apiResponseBody = null;
 
+    /**
+     * Client the call was made for (api.* rows). Plain id, no foreign key:
+     * the trace outlives the client.
+     */
+    #[ORM\Column(nullable: true)]
+    private ?int $clientId = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -79,6 +87,18 @@ class ActivityLog
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    public function getClientId(): ?int
+    {
+        return $this->clientId;
+    }
+
+    public function setClientId(?int $clientId): static
+    {
+        $this->clientId = $clientId;
+
+        return $this;
     }
 
     public function getActorEmail(): ?string

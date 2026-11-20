@@ -1,6 +1,17 @@
 {% extends 'base.html.twig' %}
 {% import 'components/icons.html.twig' as icons %}
 
+{% import _self as m %}
+{% macro health(call) %}
+    {% if call is null %}
+        <span class="text-muted">aucun appel</span>
+    {% else %}
+        {% set ok = call.apiStatusCode is not null and call.apiStatusCode >= 200 and call.apiStatusCode < 300 %}
+        <span class="status-pill"><span class="dot {{ ok ? 'dot--active' : 'dot--inactive' }}"></span> HTTP {{ call.apiStatusCode ? call.apiStatusCode : '?' }}</span>
+        <span class="text-muted">· {{ call.createdAt|date('d/m H:i') }}</span>
+    {% endif %}
+{% endmacro %}
+
 {% block title %}Tableau de bord - Cyllos{% endblock %}
 {% block content_width %}content--full{% endblock %}
 
@@ -129,23 +140,29 @@
                 <div class="summary-card__title"><span class="summary-card__icon">{{ icons.render('inbox') }}</span> Santé des connexions</div>
             </div>
             <div class="summary-card__body">
-                <dl class="kv-list">
-                    {% for service, label in {'helloasso': 'HelloAsso', 'cyclos': 'Cyclos'} %}
-                        {% set call = apiHealth[service] %}
-                        <div class="kv-row">
-                            <dt>{{ label }}</dt>
-                            <dd>
-                                {% if call is null %}
-                                    <span class="text-muted">aucun appel enregistré</span>
-                                {% else %}
-                                    {% set ok = call.apiStatusCode is not null and call.apiStatusCode < 300 %}
-                                    <span class="status-pill"><span class="dot {{ ok ? 'dot--active' : 'dot--inactive' }}"></span> HTTP {{ call.apiStatusCode ?? '?' }}</span>
-                                    <span class="text-muted">· {{ call.createdAt|date('d/m/Y H:i') }}</span>
-                                {% endif %}
-                            </dd>
-                        </div>
-                    {% endfor %}
-                </dl>
+                {% if connectionHealth is empty %}
+                    <p class="text-muted text-sm">Aucun client actif.</p>
+                {% else %}
+                    <div class="table-wrapper">
+                        <table class="table">
+                            <thead>
+                                <tr><th>Client</th><th>Service de paiement</th><th>Cyclos</th></tr>
+                            </thead>
+                            <tbody>
+                                {% for row in connectionHealth %}
+                                    <tr>
+                                        <td><a href="{{ path('admin_client_show', {id: row.client.id}) }}">{{ row.client.name }}</a></td>
+                                        <td>
+                                            <strong>{{ row.client.usesStripe ? 'Stripe' : 'HelloAsso' }}</strong>
+                                            {{ m.health(row.payment) }}
+                                        </td>
+                                        <td>{{ m.health(row.cyclos) }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
                 {% if legacyWebhookClients is not empty %}
                     <p class="text-sm" style="margin-top: .75rem; color: var(--color-warning);">
                         {{ icons.render('rule') }} URL de webhook sans jeton encore utilisée ({{ windowDays }} j) — mettre à jour côté HelloAsso :

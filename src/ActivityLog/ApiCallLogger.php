@@ -32,11 +32,13 @@ class ApiCallLogger
         int $statusCode,
         ?string $responseBody,
         ?string $summary = null,
+        ?int $clientId = null,
     ): void {
         $log = new ActivityLog();
         $log->setAction('api.' . $service);
         $log->setSummary($summary ?? \sprintf('%s %s', $method, $this->pathOnly($url)));
         $log->setApiService($service);
+        $log->setClientId($clientId);
         $log->setApiMethod($method);
         $log->setApiUrl($url);
         $log->setApiStatusCode($statusCode);

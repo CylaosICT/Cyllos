@@ -28,6 +28,7 @@
                             <tr>
                                 <th>Nom</th>
                                 <th>Slug</th>
+                                <th>Service de paiement</th>
                                 <th>Statut</th>
                                 <th></th>
                             </tr>
@@ -42,6 +43,7 @@
                                         </a>
                                     </td>
                                     <td><code>{{ client.slug }}</code></td>
+                                    <td><span class="badge {{ client.usesStripe ? 'badge--waiting' : 'badge--todo' }}">{{ client.paymentProvider.label }}</span></td>
                                     <td>
                                         <span class="status-pill">
                                             <span class="dot {{ client.active ? 'dot--active' : 'dot--inactive' }}"></span>
