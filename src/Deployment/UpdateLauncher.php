@@ -70,7 +70,7 @@ class UpdateLauncher
         $this->entityManager->persist($run);
         $this->entityManager->flush();
         $runId = (int) $run->getId();
-        $this->log->replace($runId, "═══ Mise à jour de Cyllos-Pay — lancée par " . ($triggeredBy ?? 'inconnu') . " ═══\n\n");
+        $this->log->replace($runId, '═══ Mise à jour de Cyllos-Pay — lancée par ' . ($triggeredBy ?? 'inconnu') . " ═══\n\n");
 
         // The payment site reads its data from this database: back it up first.
         $this->log->append($runId, "▶ Sauvegarde de la base de données\n");
